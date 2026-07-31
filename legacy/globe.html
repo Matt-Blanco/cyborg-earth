@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Energy Infrastructure</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #12151c;
+      --border: #1e2230;
+      --text: #c8cdd8;
+      --text-dim: #6b7280;
+      --accent: #22d3ee;
+      --accent-glow: rgba(34, 211, 238, 0.15)
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Instrument Sans', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000
+    }
+
+    #globe-container {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    canvas#globe {
+      cursor: grab
+    }
+
+    canvas#globe:active {
+      cursor: grabbing
+    }
+
+    canvas#lines-canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 28px 10px 28px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      pointer-events: none
+    }
+
+    .header>* {
+      pointer-events: auto
+    }
+
+    .title-block h1 {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 4px
+    }
+
+    .title-block p {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: .5px
+    }
+
+    .stats-panel {
+      position: fixed;
+      bottom: 28px;
+      left: 28px;
+      z-index: 100;
+      display: flex;
+      gap: 1px;
+      background: var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .4)
+    }
+
+    .stat-item {
+      background: var(--surface);
+      padding: 12px 16px;
+      min-width: 95px
+    }
+
+    .stat-item:first-child {
+      border-radius: 8px 0 0 8px
+    }
+
+    .stat-item:last-child {
+      border-radius: 0 8px 8px 0
+    }
+
+    .stat-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px
+    }
+
+    .stat-value {
+      font-family: 'Geist Mono', monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .stat-value.reactors {
+      color: #10b981
+    }
+
+    .stat-value.lines {
+      color: #f59e0b
+    }
+
+    .stat-value.substations {
+      color: #a78bfa
+    }
+
+    .stat-value.plants {
+      color: #fb923c
+    }
+
+    .legend {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 100;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .4)
+    }
+
+    .legend-title {
+      font-family: 'Geist Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim)
+    }
+
+    .legend-item:last-child {
+      margin-bottom: 0
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .legend-line {
+      width: 16px;
+      height: 2px;
+      flex-shrink: 0;
+      border-radius: 1px
+    }
+
+    .legend-dot.reactor-op {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, .5)
+    }
+
+    .legend-dot.reactor-uc {
+      background: #f59e0b;
+      box-shadow: 0 0 6px rgba(245, 158, 11, .5)
+    }
+
+    .legend-dot.reactor-sd {
+      background: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, .4)
+    }
+
+    .legend-dot.substation {
+      background: #a78bfa;
+      box-shadow: 0 0 6px rgba(167, 139, 250, .4)
+    }
+
+    .legend-dot.plant {
+      background: #fb923c;
+      box-shadow: 0 0 6px rgba(251, 146, 60, .4)
+    }
+
+    .legend-line.hv {
+      background: linear-gradient(90deg, rgba(245, 158, 11, .8), rgba(245, 158, 11, .3))
+    }
+
+    .legend-line.mv {
+      background: linear-gradient(90deg, rgba(56, 189, 248, .6), rgba(56, 189, 248, .2))
+    }
+
+    .legend-line.cable {
+      background: linear-gradient(90deg, rgba(16, 185, 129, .6), rgba(16, 185, 129, .2))
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 200;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
+      max-width: 280px
+    }
+
+    .tooltip.visible {
+      opacity: 1
+    }
+
+    .tooltip-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px
+    }
+
+    .tooltip-country {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 6px
+    }
+
+    .tooltip-detail {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      line-height: 1.6
+    }
+
+    .tooltip-detail span {
+      color: var(--text)
+    }
+
+    .layer-toggles {
+      position: fixed;
+      top: 52px;
+      right: 28px;
+      z-index: 100;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: 500px
+    }
+
+    .toggle-btn {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .5px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .toggle-btn:hover {
+      border-color: #3a4050;
+      color: var(--text)
+    }
+
+    .toggle-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow)
+    }
+
+    .toggle-btn .indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%
+    }
+
+    .globe-glow {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(34, 211, 238, .04) 0%, rgba(34, 211, 238, .01) 40%, transparent 70%)
+    }
+
+    .load-status {
+      position: fixed;
+      top: 88px;
+      right: 28px;
+      z-index: 100;
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: .5px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity .3s;
+      max-width: 360px
+    }
+
+    .load-status.visible {
+      opacity: 1
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: .4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    .load-status.loading {
+      animation: pulse 1s ease-in-out infinite;
+      color: var(--accent)
+    }
+
+    .proj-select-wrap {
+      position: fixed;
+      top: 20px;
+      left: 28px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto
+    }
+
+    .proj-select-wrap label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim)
+    }
+
+    .proj-select {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px
+    }
+
+    .proj-select:hover {
+      border-color: #3a4050
+    }
+
+    .proj-select:focus {
+      border-color: var(--accent)
+    }
+
+    .proj-select option {
+      background: var(--surface);
+      color: var(--text)
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="title-block" style="display: none;">
+      <h1>&#9889; Global Energy Infrastructure</h1>
+      <p>Nuclear Reactors &amp; Power Grid &mdash; OpenStreetMap + GeoNuclearData</p>
+    </div>
+  </div>
+  <div class="proj-select-wrap">
+    <label for="proj-sel">Projection</label>
+    <select id="proj-sel" class="proj-select">
+      <optgroup label="3D Globe">
+        <option value="orthographic" selected>Orthographic</option>
+      </optgroup>
+      <optgroup label="2D — Cylindrical">
+        <option value="equirectangular">Equirectangular (Plate Carrée)</option>
+        <option value="mercator">Mercator</option>
+        <option value="transverseMercator">Transverse Mercator</option>
+        <option value="naturalEarth1">Natural Earth</option>
+      </optgroup>
+      <optgroup label="2D — Pseudocylindrical">
+        <option value="mollweide">Mollweide</option>
+        <option value="robinson">Robinson (via Natural Earth)</option>
+        <option value="sinusoidal">Sinusoidal</option>
+        <option value="eckert4">Eckert IV</option>
+      </optgroup>
+      <optgroup label="2D — Conic">
+        <option value="albers">Albers Equal-Area</option>
+        <option value="conicEquidistant">Conic Equidistant</option>
+        <option value="conicEqualArea">Conic Equal-Area</option>
+      </optgroup>
+      <optgroup label="2D — Azimuthal">
+        <option value="azimuthalEqualArea">Azimuthal Equal-Area</option>
+        <option value="azimuthalEquidistant">Azimuthal Equidistant</option>
+        <option value="stereographic">Stereographic</option>
+        <option value="gnomonic">Gnomonic</option>
+      </optgroup>
+    </select>
+  </div>
+  <div class="layer-toggles" id="toggles"></div>
+  <div class="load-status" id="load-status"></div>
+  <div id="globe-container">
+    <div class="globe-glow" id="glow"></div><canvas id="globe"></canvas><canvas id="lines-canvas"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-title">Infrastructure Layers</div>
+    <div class="legend-item">
+      <div class="legend-dot reactor-op"></div>Reactor &mdash; Operational
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot reactor-uc"></div>Reactor &mdash; Under Construction
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot reactor-sd"></div>Reactor &mdash; Shutdown
+    </div>
+    <div class="legend-item">
+      <div class="legend-line hv"></div>HV Transmission (&ge;200kV)
+    </div>
+    <div class="legend-item">
+      <div class="legend-line mv"></div>MV Lines (&lt;200kV)
+    </div>
+    <div class="legend-item">
+      <div class="legend-line cable"></div>Underground / Submarine Cables
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot substation"></div>Substations
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot plant"></div>Power Plants
+    </div>
+  </div>
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-name" id="tt-name"></div>
+    <div class="tooltip-country" id="tt-country"></div>
+    <div class="tooltip-detail" id="tt-detail"></div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+  <script>
+    // ============================================================================
+    // CONFIGURATION — Edit these arrays to point at your compact_power.py outputs.
+    //
+    // Each entry is a URL (relative or absolute) to a JSON file produced by
+    // compact_power.py. They are loaded in parallel on page load. You can split
+    // regions into separate files, or use a single global file.
+    //
+    // Example:
+    //   var GRID_DATA_URLS = [
+    //     "data/us-power-compact.json",
+    //     "data/europe-power-compact.json",
+    //     "data/japan-power-compact.json",
+    //   ];
+    //
+    // If the array is empty, only the embedded reactor data will display.
+    // ============================================================================
+    var GRID_DATA_URLS = [
+      // Add your compact_power.py output file URLs here:       
+      // "us-power-compact.json",       
+      // "europe-power-compact.json",      
+      "africa-power-compact.json",
+      "asia-power-compact.json",
+      "australia-power-compact.json",
+      "north-america-power-compact.json",
+      "central-america-power-compact.json",
+      "south-america-power-compact.json",
+      "europe-power-compact.json",
+    ];
+
+    var REACTORS_RAW = [];
+    //[{ "n": "ATUCHA-1", "la": -34.07, "lo": -59.21, "c": "Argentina", "s": "Operational", "rt": "PHWR", "rm": "PHWR KWU", "ca": 340 }, { "n": "ATUCHA-2", "la": -34.07, "lo": -59.21, "c": "Argentina", "s": "Operational", "rt": "PHWR", "rm": "PHWR KWU", "ca": 692 }, { "n": "EMBALSE", "la": -32.23, "lo": -64.47, "c": "Argentina", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 600 }, { "n": "CAREM-25", "la": -34.07, "lo": -59.21, "c": "Argentina", "s": "Under Construction", "rt": "PWR", "rm": "CAREM", "ca": 25 }, { "n": "ARMENIAN-2", "la": 40.18, "lo": 44.15, "c": "Armenia", "s": "Operational", "rt": "PWR", "rm": "VVER V-270", "ca": 375 }, { "n": "ROOPPUR-1", "la": 24.07, "lo": 89.05, "c": "Bangladesh", "s": "Under Construction", "rt": "PWR", "rm": "VVER V-523", "ca": 1080 }, { "n": "ROOPPUR-2", "la": 24.07, "lo": 89.05, "c": "Bangladesh", "s": "Under Construction", "rt": "PWR", "rm": "VVER V-523", "ca": 1080 }, { "n": "BELARUSIAN-1", "la": 54.76, "lo": 26.09, "c": "Belarus", "s": "Operational", "rt": "PWR", "rm": "VVER V-523", "ca": 1109 }, { "n": "BELARUSIAN-2", "la": 54.76, "lo": 26.09, "c": "Belarus", "s": "Operational", "rt": "PWR", "rm": "VVER V-523", "ca": 1109 }, { "n": "DOEL-4", "la": 51.33, "lo": 4.26, "c": "Belgium", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 1038 }, { "n": "TIHANGE-3", "la": 50.53, "lo": 5.27, "c": "Belgium", "s": "Operational", "rt": "PWR", "rm": "ACEC", "ca": 1038 }, { "n": "DOEL-1", "la": 51.33, "lo": 4.26, "c": "Belgium", "s": "Permanent Shutdown", "rt": "PWR", "rm": "Westing.2Lp", "ca": 433 }, { "n": "DOEL-2", "la": 51.33, "lo": 4.26, "c": "Belgium", "s": "Permanent Shutdown", "rt": "PWR", "rm": "Westing.2Lp", "ca": 433 }, { "n": "DOEL-3", "la": 51.33, "lo": 4.26, "c": "Belgium", "s": "Permanent Shutdown", "rt": "PWR", "rm": "Westing.3Lp", "ca": 1006 }, { "n": "TIHANGE-1", "la": 50.53, "lo": 5.27, "c": "Belgium", "s": "Permanent Shutdown", "rt": "PWR", "rm": "Framatome", "ca": 962 }, { "n": "TIHANGE-2", "la": 50.53, "lo": 5.27, "c": "Belgium", "s": "Permanent Shutdown", "rt": "PWR", "rm": "ACEC", "ca": 1008 }, { "n": "ANGRA-1", "la": -23.01, "lo": -44.46, "c": "Brazil", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 609 }, { "n": "ANGRA-2", "la": -23.01, "lo": -44.46, "c": "Brazil", "s": "Operational", "rt": "PWR", "rm": "PRE KONVOI", "ca": 1275 }, { "n": "ANGRA-3", "la": -23.01, "lo": -44.46, "c": "Brazil", "s": "Under Construction", "rt": "PWR", "rm": "PRE KONVOI", "ca": 1340 }, { "n": "KOZLODUY-5", "la": 43.74, "lo": 23.77, "c": "Bulgaria", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 963 }, { "n": "KOZLODUY-6", "la": 43.74, "lo": 23.77, "c": "Bulgaria", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 963 }, { "n": "KOZLODUY-1", "la": 43.74, "lo": 23.77, "c": "Bulgaria", "s": "Permanent Shutdown", "rt": "PWR", "rm": "VVER V-230", "ca": 408 }, { "n": "KOZLODUY-2", "la": 43.74, "lo": 23.77, "c": "Bulgaria", "s": "Permanent Shutdown", "rt": "PWR", "rm": "VVER V-230", "ca": 408 }, { "n": "KOZLODUY-3", "la": 43.74, "lo": 23.77, "c": "Bulgaria", "s": "Permanent Shutdown", "rt": "PWR", "rm": "VVER V-230", "ca": 408 }, { "n": "KOZLODUY-4", "la": 43.74, "lo": 23.77, "c": "Bulgaria", "s": "Permanent Shutdown", "rt": "PWR", "rm": "VVER V-230", "ca": 408 }, { "n": "BRUCE-1", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 769 }, { "n": "BRUCE-2", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 769 }, { "n": "BRUCE-3", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 750 }, { "n": "BRUCE-4", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 750 }, { "n": "BRUCE-5", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 817 }, { "n": "BRUCE-6", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 817 }, { "n": "BRUCE-7", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 817 }, { "n": "BRUCE-8", "la": 44.33, "lo": -81.6, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 817 }, { "n": "DARLINGTON-1", "la": 43.88, "lo": -78.72, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU 880", "ca": 878 }, { "n": "DARLINGTON-2", "la": 43.88, "lo": -78.72, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU 880", "ca": 878 }, { "n": "DARLINGTON-3", "la": 43.88, "lo": -78.72, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU 880", "ca": 878 }, { "n": "DARLINGTON-4", "la": 43.88, "lo": -78.72, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU 880", "ca": 878 }, { "n": "PICKERING-4", "la": 43.81, "lo": -79.07, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 508 }, { "n": "PICKERING-5", "la": 43.81, "lo": -79.07, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 508 }, { "n": "PICKERING-6", "la": 43.81, "lo": -79.07, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 508 }, { "n": "PICKERING-7", "la": 43.81, "lo": -79.07, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 508 }, { "n": "PICKERING-8", "la": 43.81, "lo": -79.07, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU", "ca": 508 }, { "n": "POINT LEPREAU", "la": 45.07, "lo": -66.45, "c": "Canada", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 639 }, { "n": "CHANGJIANG-1", "la": 19.47, "lo": 108.9, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-600", "ca": 610 }, { "n": "CHANGJIANG-2", "la": 19.47, "lo": 108.9, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-600", "ca": 610 }, { "n": "DAYA BAY-1", "la": 22.6, "lo": 114.54, "c": "China", "s": "Operational", "rt": "PWR", "rm": "M310", "ca": 944 }, { "n": "DAYA BAY-2", "la": 22.6, "lo": 114.54, "c": "China", "s": "Operational", "rt": "PWR", "rm": "M310", "ca": 944 }, { "n": "FANGJIASHAN-1", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "FANGJIASHAN-2", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "FANGCHENGGANG-1", "la": 21.63, "lo": 108.53, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "FANGCHENGGANG-2", "la": 21.63, "lo": 108.53, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "FANGCHENGGANG-3", "la": 21.63, "lo": 108.53, "c": "China", "s": "Operational", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "FUQING-1", "la": 25.44, "lo": 119.43, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "FUQING-2", "la": 25.44, "lo": 119.43, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "FUQING-3", "la": 25.44, "lo": 119.43, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "FUQING-4", "la": 25.44, "lo": 119.43, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "FUQING-5", "la": 25.44, "lo": 119.43, "c": "China", "s": "Operational", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "FUQING-6", "la": 25.44, "lo": 119.43, "c": "China", "s": "Operational", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "HAIYANG-1", "la": 36.69, "lo": 121.66, "c": "China", "s": "Operational", "rt": "PWR", "rm": "AP1000", "ca": 1000 }, { "n": "HAIYANG-2", "la": 36.69, "lo": 121.66, "c": "China", "s": "Operational", "rt": "PWR", "rm": "AP1000", "ca": 1000 }, { "n": "HONGYANHE-1", "la": 39.79, "lo": 121.48, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "HONGYANHE-2", "la": 39.79, "lo": 121.48, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "HONGYANHE-3", "la": 39.79, "lo": 121.48, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "HONGYANHE-4", "la": 39.79, "lo": 121.48, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "HONGYANHE-5", "la": 39.79, "lo": 121.48, "c": "China", "s": "Operational", "rt": "PWR", "rm": "ACPR-1000", "ca": 1000 }, { "n": "HONGYANHE-6", "la": 39.79, "lo": 121.48, "c": "China", "s": "Operational", "rt": "PWR", "rm": "ACPR-1000", "ca": 1000 }, { "n": "HTR-PM", "la": 36.88, "lo": 122.58, "c": "China", "s": "Operational", "rt": "HTGR", "rm": "HTR-PM", "ca": 200 }, { "n": "LING AO-1", "la": 22.6, "lo": 114.55, "c": "China", "s": "Operational", "rt": "PWR", "rm": "M310", "ca": 990 }, { "n": "LING AO-2", "la": 22.6, "lo": 114.55, "c": "China", "s": "Operational", "rt": "PWR", "rm": "M310", "ca": 990 }, { "n": "LING DONG-1", "la": 22.6, "lo": 114.55, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "LING DONG-2", "la": 22.6, "lo": 114.55, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "NINGDE-1", "la": 27.18, "lo": 120.24, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "NINGDE-2", "la": 27.18, "lo": 120.24, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "NINGDE-3", "la": 27.18, "lo": 120.24, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "NINGDE-4", "la": 27.18, "lo": 120.24, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "QINSHAN-1", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-300", "ca": 298 }, { "n": "QINSHAN-2-1", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-600", "ca": 610 }, { "n": "QINSHAN-2-2", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-600", "ca": 610 }, { "n": "QINSHAN-2-3", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-600", "ca": 610 }, { "n": "QINSHAN-2-4", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-600", "ca": 610 }, { "n": "QINSHAN-3-1", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 677 }, { "n": "QINSHAN-3-2", "la": 30.44, "lo": 121.12, "c": "China", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 677 }, { "n": "SANMEN-1", "la": 29.1, "lo": 121.88, "c": "China", "s": "Operational", "rt": "PWR", "rm": "AP1000", "ca": 1000 }, { "n": "SANMEN-2", "la": 29.1, "lo": 121.88, "c": "China", "s": "Operational", "rt": "PWR", "rm": "AP1000", "ca": 1000 }, { "n": "TAISHAN-1", "la": 21.92, "lo": 112.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "EPR", "ca": 1660 }, { "n": "TAISHAN-2", "la": 21.92, "lo": 112.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "EPR", "ca": 1660 }, { "n": "TIANWAN-1", "la": 34.68, "lo": 119.46, "c": "China", "s": "Operational", "rt": "PWR", "rm": "VVER V-428", "ca": 990 }, { "n": "TIANWAN-2", "la": 34.68, "lo": 119.46, "c": "China", "s": "Operational", "rt": "PWR", "rm": "VVER V-428", "ca": 990 }, { "n": "TIANWAN-3", "la": 34.68, "lo": 119.46, "c": "China", "s": "Operational", "rt": "PWR", "rm": "VVER V-428M", "ca": 990 }, { "n": "TIANWAN-4", "la": 34.68, "lo": 119.46, "c": "China", "s": "Operational", "rt": "PWR", "rm": "VVER V-428M", "ca": 990 }, { "n": "TIANWAN-5", "la": 34.68, "lo": 119.46, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "TIANWAN-6", "la": 34.68, "lo": 119.46, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CNP-1000", "ca": 1000 }, { "n": "YANGJIANG-1", "la": 21.7, "lo": 111.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "YANGJIANG-2", "la": 21.7, "lo": 111.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "YANGJIANG-3", "la": 21.7, "lo": 111.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "YANGJIANG-4", "la": 21.7, "lo": 111.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "CPR-1000", "ca": 1000 }, { "n": "YANGJIANG-5", "la": 21.7, "lo": 111.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "ACPR-1000", "ca": 1000 }, { "n": "YANGJIANG-6", "la": 21.7, "lo": 111.98, "c": "China", "s": "Operational", "rt": "PWR", "rm": "ACPR-1000", "ca": 1000 }, { "n": "CEFR", "la": 40.58, "lo": 109.98, "c": "China", "s": "Operational", "rt": "FBR", "rm": "CEFR", "ca": 20 }, { "n": "ZHANGZHOU-1", "la": 23.95, "lo": 117.65, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "ZHANGZHOU-2", "la": 23.95, "lo": 117.65, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "TAIPINGLING-1", "la": 22.7, "lo": 115.5, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "TAIPINGLING-2", "la": 22.7, "lo": 115.5, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "SAN'AO-1", "la": 27.05, "lo": 120.55, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "SAN'AO-2", "la": 27.05, "lo": 120.55, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "LIANJIANG-1", "la": 21.45, "lo": 110.3, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "LIANJIANG-2", "la": 21.45, "lo": 110.3, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "XIAPU-1", "la": 26.8, "lo": 120.05, "c": "China", "s": "Under Construction", "rt": "FBR", "rm": "CFR-600", "ca": 600 }, { "n": "CHANGJIANG-3", "la": 19.47, "lo": 108.9, "c": "China", "s": "Under Construction", "rt": "PWR", "rm": "HPR1000", "ca": 1000 }, { "n": "DUKOVANY-1", "la": 51.09, "lo": 16.13, "c": "Czech Republic", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 468 }, { "n": "DUKOVANY-2", "la": 51.09, "lo": 16.13, "c": "Czech Republic", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 468 }, { "n": "DUKOVANY-3", "la": 51.09, "lo": 16.13, "c": "Czech Republic", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 468 }, { "n": "DUKOVANY-4", "la": 51.09, "lo": 16.13, "c": "Czech Republic", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 468 }, { "n": "TEMELIN-1", "la": 49.18, "lo": 14.38, "c": "Czech Republic", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 963 }, { "n": "TEMELIN-2", "la": 49.18, "lo": 14.38, "c": "Czech Republic", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 963 }, { "n": "EL DABAA-1", "la": 31.03, "lo": 28.5, "c": "Egypt", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "EL DABAA-2", "la": 31.03, "lo": 28.5, "c": "Egypt", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "EL DABAA-3", "la": 31.03, "lo": 28.5, "c": "Egypt", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "EL DABAA-4", "la": 31.03, "lo": 28.5, "c": "Egypt", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "LOVIISA-1", "la": 61.37, "lo": 26.36, "c": "Finland", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 496 }, { "n": "LOVIISA-2", "la": 61.37, "lo": 26.36, "c": "Finland", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 496 }, { "n": "OLKILUOTO-1", "la": 61.24, "lo": 21.45, "c": "Finland", "s": "Operational", "rt": "BWR", "rm": "ASEA BWR", "ca": 860 }, { "n": "OLKILUOTO-2", "la": 61.24, "lo": 21.45, "c": "Finland", "s": "Operational", "rt": "BWR", "rm": "ASEA BWR", "ca": 860 }, { "n": "OLKILUOTO-3", "la": 61.24, "lo": 21.45, "c": "Finland", "s": "Operational", "rt": "PWR", "rm": "EPR", "ca": 1600 }, { "n": "BELLEVILLE-1", "la": 47.51, "lo": 2.88, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4 REP 1300", "ca": 1310 }, { "n": "BELLEVILLE-2", "la": 47.51, "lo": 2.88, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4 REP 1300", "ca": 1310 }, { "n": "BLAYAIS-1", "la": 45.26, "lo": -0.69, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "BLAYAIS-2", "la": 45.26, "lo": -0.69, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "BLAYAIS-3", "la": 45.26, "lo": -0.69, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "BLAYAIS-4", "la": 45.26, "lo": -0.69, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "BUGEY-2", "la": 45.8, "lo": 5.27, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP0", "ca": 910 }, { "n": "BUGEY-3", "la": 45.8, "lo": 5.27, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP0", "ca": 910 }, { "n": "BUGEY-4", "la": 45.8, "lo": 5.27, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP0", "ca": 910 }, { "n": "BUGEY-5", "la": 45.8, "lo": 5.27, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP0", "ca": 910 }, { "n": "CATTENOM-1", "la": 49.41, "lo": 6.22, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1300 }, { "n": "CATTENOM-2", "la": 49.41, "lo": 6.22, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1300 }, { "n": "CATTENOM-3", "la": 49.41, "lo": 6.22, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1300 }, { "n": "CATTENOM-4", "la": 49.41, "lo": 6.22, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1300 }, { "n": "CHINON B-1", "la": 47.23, "lo": 0.17, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 905 }, { "n": "CHINON B-2", "la": 47.23, "lo": 0.17, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 905 }, { "n": "CHINON B-3", "la": 47.23, "lo": 0.17, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 905 }, { "n": "CHINON B-4", "la": 47.23, "lo": 0.17, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 905 }, { "n": "CHOOZ B-1", "la": 50.09, "lo": 4.79, "c": "France", "s": "Operational", "rt": "PWR", "rm": "N4", "ca": 1455 }, { "n": "CHOOZ B-2", "la": 50.09, "lo": 4.79, "c": "France", "s": "Operational", "rt": "PWR", "rm": "N4", "ca": 1455 }, { "n": "CIVAUX-1", "la": 46.45, "lo": 0.65, "c": "France", "s": "Operational", "rt": "PWR", "rm": "N4", "ca": 1450 }, { "n": "CIVAUX-2", "la": 46.45, "lo": 0.65, "c": "France", "s": "Operational", "rt": "PWR", "rm": "N4", "ca": 1450 }, { "n": "CRUAS-1", "la": 44.63, "lo": 4.76, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 915 }, { "n": "CRUAS-2", "la": 44.63, "lo": 4.76, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 915 }, { "n": "CRUAS-3", "la": 44.63, "lo": 4.76, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 915 }, { "n": "CRUAS-4", "la": 44.63, "lo": 4.76, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 915 }, { "n": "DAMPIERRE-1", "la": 47.73, "lo": 2.52, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 890 }, { "n": "DAMPIERRE-2", "la": 47.73, "lo": 2.52, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 890 }, { "n": "DAMPIERRE-3", "la": 47.73, "lo": 2.52, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 890 }, { "n": "DAMPIERRE-4", "la": 47.73, "lo": 2.52, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 890 }, { "n": "FLAMANVILLE-1", "la": 49.54, "lo": -1.88, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "FLAMANVILLE-2", "la": 49.54, "lo": -1.88, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "FLAMANVILLE-3", "la": 49.54, "lo": -1.88, "c": "France", "s": "Under Construction", "rt": "PWR", "rm": "EPR", "ca": 1630 }, { "n": "GOLFECH-1", "la": 44.11, "lo": 0.84, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1310 }, { "n": "GOLFECH-2", "la": 44.11, "lo": 0.84, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1310 }, { "n": "GRAVELINES-1", "la": 51.0, "lo": 2.11, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "GRAVELINES-2", "la": 51.0, "lo": 2.11, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "GRAVELINES-3", "la": 51.0, "lo": 2.11, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "GRAVELINES-4", "la": 51.0, "lo": 2.11, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "GRAVELINES-5", "la": 51.0, "lo": 2.11, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "GRAVELINES-6", "la": 51.0, "lo": 2.11, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 910 }, { "n": "NOGENT-1", "la": 48.52, "lo": 3.52, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1310 }, { "n": "NOGENT-2", "la": 48.52, "lo": 3.52, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1310 }, { "n": "PALUEL-1", "la": 49.86, "lo": 0.63, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "PALUEL-2", "la": 49.86, "lo": 0.63, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "PALUEL-3", "la": 49.86, "lo": 0.63, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "PALUEL-4", "la": 49.86, "lo": 0.63, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "PENLY-1", "la": 49.98, "lo": 1.21, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "PENLY-2", "la": 49.98, "lo": 1.21, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1330 }, { "n": "SAINT-ALBAN-1", "la": 45.41, "lo": 4.75, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1335 }, { "n": "SAINT-ALBAN-2", "la": 45.41, "lo": 4.75, "c": "France", "s": "Operational", "rt": "PWR", "rm": "P4", "ca": 1335 }, { "n": "SAINT-LAURENT B-1", "la": 47.72, "lo": 1.58, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 915 }, { "n": "SAINT-LAURENT B-2", "la": 47.72, "lo": 1.58, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP2", "ca": 915 }, { "n": "TRICASTIN-1", "la": 44.33, "lo": 4.73, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 915 }, { "n": "TRICASTIN-2", "la": 44.33, "lo": 4.73, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 915 }, { "n": "TRICASTIN-3", "la": 44.33, "lo": 4.73, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 915 }, { "n": "TRICASTIN-4", "la": 44.33, "lo": 4.73, "c": "France", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 915 }, { "n": "FESSENHEIM-1", "la": 47.91, "lo": 7.56, "c": "France", "s": "Permanent Shutdown", "rt": "PWR", "rm": "CP0", "ca": 880 }, { "n": "FESSENHEIM-2", "la": 47.91, "lo": 7.56, "c": "France", "s": "Permanent Shutdown", "rt": "PWR", "rm": "CP0", "ca": 880 }, { "n": "BROKDORF", "la": 53.85, "lo": 9.35, "c": "Germany", "s": "Permanent Shutdown", "rt": "PWR", "rm": "PRE KONVOI", "ca": 1370 }, { "n": "EMSLAND", "la": 52.47, "lo": 7.32, "c": "Germany", "s": "Permanent Shutdown", "rt": "PWR", "rm": "KONVOI", "ca": 1335 }, { "n": "GROHNDE", "la": 52.03, "lo": 9.41, "c": "Germany", "s": "Permanent Shutdown", "rt": "PWR", "rm": "PRE KONVOI", "ca": 1360 }, { "n": "GUNDREMMINGEN-C", "la": 48.51, "lo": 10.4, "c": "Germany", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-72", "ca": 1288 }, { "n": "ISAR-2", "la": 48.61, "lo": 12.29, "c": "Germany", "s": "Permanent Shutdown", "rt": "PWR", "rm": "KONVOI", "ca": 1410 }, { "n": "NECKARWESTHEIM-2", "la": 49.04, "lo": 9.17, "c": "Germany", "s": "Permanent Shutdown", "rt": "PWR", "rm": "KONVOI", "ca": 1310 }, { "n": "PAKS-1", "la": 46.57, "lo": 18.85, "c": "Hungary", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 470 }, { "n": "PAKS-2", "la": 46.57, "lo": 18.85, "c": "Hungary", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 473 }, { "n": "PAKS-3", "la": 46.57, "lo": 18.85, "c": "Hungary", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 473 }, { "n": "PAKS-4", "la": 46.57, "lo": 18.85, "c": "Hungary", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 473 }, { "n": "KAIGA-1", "la": 14.86, "lo": 74.44, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "KAIGA-2", "la": 14.86, "lo": 74.44, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "KAIGA-3", "la": 14.86, "lo": 74.44, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "KAIGA-4", "la": 14.86, "lo": 74.44, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "KAKRAPAR-1", "la": 21.24, "lo": 73.35, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "KAKRAPAR-2", "la": 21.24, "lo": 73.35, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "KAKRAPAR-3", "la": 21.24, "lo": 73.35, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-700", "ca": 630 }, { "n": "KAKRAPAR-4", "la": 21.24, "lo": 73.35, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-700", "ca": 630 }, { "n": "KUDANKULAM-1", "la": 8.17, "lo": 77.72, "c": "India", "s": "Operational", "rt": "PWR", "rm": "VVER V-412", "ca": 917 }, { "n": "KUDANKULAM-2", "la": 8.17, "lo": 77.72, "c": "India", "s": "Operational", "rt": "PWR", "rm": "VVER V-412", "ca": 917 }, { "n": "KUDANKULAM-3", "la": 8.17, "lo": 77.72, "c": "India", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 917 }, { "n": "KUDANKULAM-4", "la": 8.17, "lo": 77.72, "c": "India", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 917 }, { "n": "MADRAS-1", "la": 12.56, "lo": 80.17, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 205 }, { "n": "MADRAS-2", "la": 12.56, "lo": 80.17, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 205 }, { "n": "NARORA-1", "la": 28.18, "lo": 78.39, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "NARORA-2", "la": 28.18, "lo": 78.39, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "RAJASTHAN-3", "la": 24.88, "lo": 75.58, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "RAJASTHAN-4", "la": 24.88, "lo": 75.58, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "RAJASTHAN-5", "la": 24.88, "lo": 75.58, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "RAJASTHAN-6", "la": 24.88, "lo": 75.58, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-220", "ca": 202 }, { "n": "TARAPUR-1", "la": 19.83, "lo": 72.67, "c": "India", "s": "Operational", "rt": "BWR", "rm": "BWR", "ca": 150 }, { "n": "TARAPUR-2", "la": 19.83, "lo": 72.67, "c": "India", "s": "Operational", "rt": "BWR", "rm": "BWR", "ca": 150 }, { "n": "TARAPUR-3", "la": 19.83, "lo": 72.67, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-540", "ca": 490 }, { "n": "TARAPUR-4", "la": 19.83, "lo": 72.67, "c": "India", "s": "Operational", "rt": "PHWR", "rm": "IPHWR-540", "ca": 490 }, { "n": "BUSHEHR-1", "la": 28.83, "lo": 50.88, "c": "Iran", "s": "Operational", "rt": "PWR", "rm": "VVER V-446", "ca": 915 }, { "n": "GENKAI-3", "la": 33.52, "lo": 129.84, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 1127 }, { "n": "GENKAI-4", "la": 33.52, "lo": 129.84, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 4Lp", "ca": 1127 }, { "n": "IKATA-3", "la": 33.49, "lo": 132.31, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 846 }, { "n": "MIHAMA-3", "la": 35.7, "lo": 135.96, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 780 }, { "n": "OHI-3", "la": 35.54, "lo": 135.66, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 4Lp", "ca": 1127 }, { "n": "OHI-4", "la": 35.54, "lo": 135.66, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 4Lp", "ca": 1127 }, { "n": "SENDAI-1", "la": 31.83, "lo": 130.19, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 846 }, { "n": "SENDAI-2", "la": 31.83, "lo": 130.19, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 846 }, { "n": "TAKAHAMA-1", "la": 35.52, "lo": 135.58, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 780 }, { "n": "TAKAHAMA-2", "la": 35.52, "lo": 135.58, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 780 }, { "n": "TAKAHAMA-3", "la": 35.52, "lo": 135.58, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 830 }, { "n": "TAKAHAMA-4", "la": 35.52, "lo": 135.58, "c": "Japan", "s": "Operational", "rt": "PWR", "rm": "M 3Lp", "ca": 830 }, { "n": "ONAGAWA-2", "la": 38.4, "lo": 141.5, "c": "Japan", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 796 }, { "n": "KASHIWAZAKI KARIWA-6", "la": 37.43, "lo": 138.6, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "ABWR", "ca": 1315 }, { "n": "KASHIWAZAKI KARIWA-7", "la": 37.43, "lo": 138.6, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "ABWR", "ca": 1315 }, { "n": "FUKUSHIMA DAIICHI-1", "la": 37.42, "lo": 141.03, "c": "Japan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-3", "ca": 439 }, { "n": "FUKUSHIMA DAIICHI-2", "la": 37.42, "lo": 141.03, "c": "Japan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-4", "ca": 760 }, { "n": "FUKUSHIMA DAIICHI-3", "la": 37.42, "lo": 141.03, "c": "Japan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-4", "ca": 760 }, { "n": "SHIMANE-2", "la": 35.54, "lo": 133.0, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "BWR-5", "ca": 790 }, { "n": "HAMAOKA-3", "la": 34.62, "lo": 138.14, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "BWR-5", "ca": 1056 }, { "n": "HAMAOKA-4", "la": 34.62, "lo": 138.14, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "BWR-5", "ca": 1092 }, { "n": "TOMARI-1", "la": 43.04, "lo": 140.51, "c": "Japan", "s": "Suspended Operation", "rt": "PWR", "rm": "M 2Lp", "ca": 550 }, { "n": "TOMARI-2", "la": 43.04, "lo": 140.51, "c": "Japan", "s": "Suspended Operation", "rt": "PWR", "rm": "M 2Lp", "ca": 550 }, { "n": "TOMARI-3", "la": 43.04, "lo": 140.51, "c": "Japan", "s": "Suspended Operation", "rt": "PWR", "rm": "M 3Lp", "ca": 866 }, { "n": "TSURUGA-2", "la": 35.76, "lo": 136.02, "c": "Japan", "s": "Suspended Operation", "rt": "PWR", "rm": "M 4Lp", "ca": 1108 }, { "n": "TOKAI-2", "la": 36.47, "lo": 140.61, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "BWR-5", "ca": 1060 }, { "n": "SHIKA-2", "la": 37.07, "lo": 136.56, "c": "Japan", "s": "Suspended Operation", "rt": "BWR", "rm": "ABWR", "ca": 1206 }, { "n": "HANBIT-1", "la": 35.41, "lo": 126.42, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 950 }, { "n": "HANBIT-2", "la": 35.41, "lo": 126.42, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 950 }, { "n": "HANBIT-3", "la": 35.41, "lo": 126.42, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "System 80", "ca": 1000 }, { "n": "HANBIT-4", "la": 35.41, "lo": 126.42, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "System 80", "ca": 1000 }, { "n": "HANBIT-5", "la": 35.41, "lo": 126.42, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "HANBIT-6", "la": 35.41, "lo": 126.42, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "HANUL-1", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "Framatome", "ca": 950 }, { "n": "HANUL-2", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "Framatome", "ca": 950 }, { "n": "HANUL-3", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "HANUL-4", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "HANUL-5", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "HANUL-6", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "KORI-2", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 637 }, { "n": "KORI-3", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "System 80", "ca": 1000 }, { "n": "KORI-4", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "System 80", "ca": 1000 }, { "n": "SHIN-KORI-1", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "SHIN-KORI-2", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "SHIN-KORI-3", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1340 }, { "n": "SHIN-KORI-4", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1340 }, { "n": "SHIN-KORI-5", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Under Construction", "rt": "PWR", "rm": "APR-1400", "ca": 1340 }, { "n": "SHIN-KORI-6", "la": 35.32, "lo": 129.22, "c": "South Korea", "s": "Under Construction", "rt": "PWR", "rm": "APR-1400", "ca": 1340 }, { "n": "SHIN-HANUL-1", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1340 }, { "n": "SHIN-HANUL-2", "la": 37.09, "lo": 129.38, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1340 }, { "n": "WOLSONG-2", "la": 35.71, "lo": 129.48, "c": "South Korea", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 653 }, { "n": "WOLSONG-3", "la": 35.71, "lo": 129.48, "c": "South Korea", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 653 }, { "n": "WOLSONG-4", "la": 35.71, "lo": 129.48, "c": "South Korea", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 653 }, { "n": "SHIN-WOLSONG-1", "la": 35.71, "lo": 129.48, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "SHIN-WOLSONG-2", "la": 35.71, "lo": 129.48, "c": "South Korea", "s": "Operational", "rt": "PWR", "rm": "OPR-1000", "ca": 1000 }, { "n": "LAGUNA VERDE-1", "la": 19.72, "lo": -96.4, "c": "Mexico", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 805 }, { "n": "LAGUNA VERDE-2", "la": 19.72, "lo": -96.4, "c": "Mexico", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 805 }, { "n": "BORSSELE", "la": 51.43, "lo": 3.72, "c": "Netherlands", "s": "Operational", "rt": "PWR", "rm": "KWU 2Lp", "ca": 482 }, { "n": "CHASHMA-1", "la": 32.38, "lo": 71.47, "c": "Pakistan", "s": "Operational", "rt": "PWR", "rm": "CNP-300", "ca": 300 }, { "n": "CHASHMA-2", "la": 32.38, "lo": 71.47, "c": "Pakistan", "s": "Operational", "rt": "PWR", "rm": "CNP-300", "ca": 300 }, { "n": "CHASHMA-3", "la": 32.38, "lo": 71.47, "c": "Pakistan", "s": "Operational", "rt": "PWR", "rm": "CNP-300", "ca": 315 }, { "n": "CHASHMA-4", "la": 32.38, "lo": 71.47, "c": "Pakistan", "s": "Operational", "rt": "PWR", "rm": "CNP-300", "ca": 315 }, { "n": "KANUPP-2", "la": 24.85, "lo": 66.78, "c": "Pakistan", "s": "Operational", "rt": "PWR", "rm": "HPR1000", "ca": 1014 }, { "n": "KANUPP-3", "la": 24.85, "lo": 66.78, "c": "Pakistan", "s": "Operational", "rt": "PWR", "rm": "HPR1000", "ca": 1014 }, { "n": "CERNAVODA-1", "la": 44.32, "lo": 28.06, "c": "Romania", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 650 }, { "n": "CERNAVODA-2", "la": 44.32, "lo": 28.06, "c": "Romania", "s": "Operational", "rt": "PHWR", "rm": "CANDU 6", "ca": 650 }, { "n": "AKADEMIK LOMONOSOV-1", "la": 69.71, "lo": 170.23, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "KLT-40S", "ca": 32 }, { "n": "AKADEMIK LOMONOSOV-2", "la": 69.71, "lo": 170.23, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "KLT-40S", "ca": 32 }, { "n": "BALAKOVO-1", "la": 52.09, "lo": 47.95, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "BALAKOVO-2", "la": 52.09, "lo": 47.95, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "BALAKOVO-3", "la": 52.09, "lo": 47.95, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "BALAKOVO-4", "la": 52.09, "lo": 47.95, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "BELOYARSK-4", "la": 56.84, "lo": 61.32, "c": "Russia", "s": "Operational", "rt": "FBR", "rm": "BN-800", "ca": 789 }, { "n": "KALININ-1", "la": 57.08, "lo": 34.98, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-338", "ca": 950 }, { "n": "KALININ-2", "la": 57.08, "lo": 34.98, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-338", "ca": 950 }, { "n": "KALININ-3", "la": 57.08, "lo": 34.98, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "KALININ-4", "la": 57.08, "lo": 34.98, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "KOLA-1", "la": 67.46, "lo": 32.47, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-230", "ca": 411 }, { "n": "KOLA-2", "la": 67.46, "lo": 32.47, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-230", "ca": 411 }, { "n": "KOLA-3", "la": 67.46, "lo": 32.47, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 411 }, { "n": "KOLA-4", "la": 67.46, "lo": 32.47, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 411 }, { "n": "KURSK II-1", "la": 51.68, "lo": 35.6, "c": "Russia", "s": "Under Construction", "rt": "PWR", "rm": "VVER V-510", "ca": 1175 }, { "n": "KURSK II-2", "la": 51.68, "lo": 35.6, "c": "Russia", "s": "Under Construction", "rt": "PWR", "rm": "VVER V-510", "ca": 1175 }, { "n": "LENINGRAD II-1", "la": 59.84, "lo": 29.04, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-491", "ca": 1066 }, { "n": "LENINGRAD II-2", "la": 59.84, "lo": 29.04, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-491", "ca": 1066 }, { "n": "NOVOVORONEZH-5", "la": 51.27, "lo": 39.21, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-187", "ca": 950 }, { "n": "NOVOVORONEZH II-1", "la": 51.27, "lo": 39.21, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-392M", "ca": 1114 }, { "n": "NOVOVORONEZH II-2", "la": 51.27, "lo": 39.21, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-392M", "ca": 1114 }, { "n": "ROSTOV-1", "la": 47.19, "lo": 42.35, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ROSTOV-2", "la": 47.19, "lo": 42.35, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ROSTOV-3", "la": 47.19, "lo": 42.35, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ROSTOV-4", "la": 47.19, "lo": 42.35, "c": "Russia", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "SMOLENSK-1", "la": 54.15, "lo": 33.23, "c": "Russia", "s": "Operational", "rt": "LWGR", "rm": "RBMK-1000", "ca": 925 }, { "n": "SMOLENSK-2", "la": 54.15, "lo": 33.23, "c": "Russia", "s": "Operational", "rt": "LWGR", "rm": "RBMK-1000", "ca": 925 }, { "n": "SMOLENSK-3", "la": 54.15, "lo": 33.23, "c": "Russia", "s": "Operational", "rt": "LWGR", "rm": "RBMK-1000", "ca": 925 }, { "n": "BOHUNICE-3", "la": 48.48, "lo": 17.71, "c": "Slovakia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 466 }, { "n": "BOHUNICE-4", "la": 48.48, "lo": 17.71, "c": "Slovakia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 466 }, { "n": "MOCHOVCE-1", "la": 48.28, "lo": 18.44, "c": "Slovakia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 436 }, { "n": "MOCHOVCE-2", "la": 48.28, "lo": 18.44, "c": "Slovakia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 436 }, { "n": "MOCHOVCE-3", "la": 48.28, "lo": 18.44, "c": "Slovakia", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 440 }, { "n": "KRSKO", "la": 45.94, "lo": 15.52, "c": "Slovenia", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 688 }, { "n": "KOEBERG-1", "la": -33.68, "lo": 18.43, "c": "South Africa", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 920 }, { "n": "KOEBERG-2", "la": -33.68, "lo": 18.43, "c": "South Africa", "s": "Operational", "rt": "PWR", "rm": "CP1", "ca": 920 }, { "n": "ALMARAZ-1", "la": 39.81, "lo": -5.69, "c": "Spain", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 974 }, { "n": "ALMARAZ-2", "la": 39.81, "lo": -5.69, "c": "Spain", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 980 }, { "n": "ASCO-1", "la": 41.2, "lo": 0.57, "c": "Spain", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 995 }, { "n": "ASCO-2", "la": 41.2, "lo": 0.57, "c": "Spain", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 997 }, { "n": "COFRENTES", "la": 39.21, "lo": -1.05, "c": "Spain", "s": "Operational", "rt": "BWR", "rm": "BWR-6", "ca": 1064 }, { "n": "TRILLO-1", "la": 40.7, "lo": -2.61, "c": "Spain", "s": "Operational", "rt": "PWR", "rm": "KWU 3Lp", "ca": 1003 }, { "n": "VANDELLOS-2", "la": 41.2, "lo": 0.87, "c": "Spain", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 1045 }, { "n": "FORSMARK-1", "la": 60.41, "lo": 18.17, "c": "Sweden", "s": "Operational", "rt": "BWR", "rm": "ASEA BWR", "ca": 984 }, { "n": "FORSMARK-2", "la": 60.41, "lo": 18.17, "c": "Sweden", "s": "Operational", "rt": "BWR", "rm": "ASEA BWR", "ca": 1120 }, { "n": "FORSMARK-3", "la": 60.41, "lo": 18.17, "c": "Sweden", "s": "Operational", "rt": "BWR", "rm": "ASEA BWR", "ca": 1167 }, { "n": "OSKARSHAMN-3", "la": 57.41, "lo": 16.67, "c": "Sweden", "s": "Operational", "rt": "BWR", "rm": "ASEA BWR", "ca": 1400 }, { "n": "RINGHALS-3", "la": 57.26, "lo": 12.11, "c": "Sweden", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 1062 }, { "n": "RINGHALS-4", "la": 57.26, "lo": 12.11, "c": "Sweden", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 1106 }, { "n": "BEZNAU-1", "la": 47.56, "lo": 8.23, "c": "Switzerland", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 365 }, { "n": "BEZNAU-2", "la": 47.56, "lo": 8.23, "c": "Switzerland", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 365 }, { "n": "GOESGEN", "la": 47.37, "lo": 7.8, "c": "Switzerland", "s": "Operational", "rt": "PWR", "rm": "KWU 3Lp", "ca": 1010 }, { "n": "LEIBSTADT", "la": 47.6, "lo": 8.18, "c": "Switzerland", "s": "Operational", "rt": "BWR", "rm": "BWR-6", "ca": 1220 }, { "n": "MAANSHAN-1", "la": 21.96, "lo": 120.76, "c": "Taiwan", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 890 }, { "n": "MAANSHAN-2", "la": 21.96, "lo": 120.76, "c": "Taiwan", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 890 }, { "n": "CHINSHAN-1", "la": 25.29, "lo": 121.59, "c": "Taiwan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-4", "ca": 604 }, { "n": "CHINSHAN-2", "la": 25.29, "lo": 121.59, "c": "Taiwan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-4", "ca": 604 }, { "n": "KUOSHENG-1", "la": 25.2, "lo": 121.66, "c": "Taiwan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-6", "ca": 948 }, { "n": "KUOSHENG-2", "la": 25.2, "lo": 121.66, "c": "Taiwan", "s": "Permanent Shutdown", "rt": "BWR", "rm": "BWR-6", "ca": 948 }, { "n": "AKKUYU-1", "la": 36.15, "lo": 33.53, "c": "Turkey", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "AKKUYU-2", "la": 36.15, "lo": 33.53, "c": "Turkey", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "AKKUYU-3", "la": 36.15, "lo": 33.53, "c": "Turkey", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "AKKUYU-4", "la": 36.15, "lo": 33.53, "c": "Turkey", "s": "Under Construction", "rt": "PWR", "rm": "VVER", "ca": 1114 }, { "n": "BARAKAH-1", "la": 23.96, "lo": 52.26, "c": "UAE", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1345 }, { "n": "BARAKAH-2", "la": 23.96, "lo": 52.26, "c": "UAE", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1345 }, { "n": "BARAKAH-3", "la": 23.96, "lo": 52.26, "c": "UAE", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1345 }, { "n": "BARAKAH-4", "la": 23.96, "lo": 52.26, "c": "UAE", "s": "Operational", "rt": "PWR", "rm": "APR-1400", "ca": 1345 }, { "n": "KHMELNITSKI-1", "la": 50.3, "lo": 26.66, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "KHMELNITSKI-2", "la": 50.3, "lo": 26.66, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "RIVNE-1", "la": 51.33, "lo": 25.9, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 381 }, { "n": "RIVNE-2", "la": 51.33, "lo": 25.9, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-213", "ca": 376 }, { "n": "RIVNE-3", "la": 51.33, "lo": 25.9, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "RIVNE-4", "la": 51.33, "lo": 25.9, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "SOUTH UKRAINE-1", "la": 47.81, "lo": 31.22, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-302", "ca": 950 }, { "n": "SOUTH UKRAINE-2", "la": 47.81, "lo": 31.22, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-338", "ca": 950 }, { "n": "SOUTH UKRAINE-3", "la": 47.81, "lo": 31.22, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ZAPORIZHZHIA-1", "la": 47.51, "lo": 34.58, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ZAPORIZHZHIA-2", "la": 47.51, "lo": 34.58, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ZAPORIZHZHIA-3", "la": 47.51, "lo": 34.58, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ZAPORIZHZHIA-4", "la": 47.51, "lo": 34.58, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ZAPORIZHZHIA-5", "la": 47.51, "lo": 34.58, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "ZAPORIZHZHIA-6", "la": 47.51, "lo": 34.58, "c": "Ukraine", "s": "Operational", "rt": "PWR", "rm": "VVER V-320", "ca": 950 }, { "n": "CHERNOBYL-4", "la": 51.39, "lo": 30.1, "c": "Ukraine", "s": "Permanent Shutdown", "rt": "LWGR", "rm": "RBMK-1000", "ca": 925 }, { "n": "SIZEWELL B", "la": 52.22, "lo": 1.62, "c": "United Kingdom", "s": "Operational", "rt": "PWR", "rm": "SNUPPS", "ca": 1191 }, { "n": "HINKLEY POINT C-1", "la": 51.21, "lo": -3.13, "c": "United Kingdom", "s": "Under Construction", "rt": "PWR", "rm": "EPR", "ca": 1630 }, { "n": "HINKLEY POINT C-2", "la": 51.21, "lo": -3.13, "c": "United Kingdom", "s": "Under Construction", "rt": "PWR", "rm": "EPR", "ca": 1630 }, { "n": "HUNTERSTON B-1", "la": 55.72, "lo": -4.9, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 490 }, { "n": "HUNTERSTON B-2", "la": 55.72, "lo": -4.9, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 490 }, { "n": "HINKLEY POINT B-1", "la": 51.21, "lo": -3.13, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 480 }, { "n": "HINKLEY POINT B-2", "la": 51.21, "lo": -3.13, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 480 }, { "n": "HARTLEPOOL-1", "la": 54.64, "lo": -1.18, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 595 }, { "n": "HARTLEPOOL-2", "la": 54.64, "lo": -1.18, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 595 }, { "n": "HEYSHAM-1-1", "la": 54.03, "lo": -2.91, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 580 }, { "n": "HEYSHAM-1-2", "la": 54.03, "lo": -2.91, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 580 }, { "n": "HEYSHAM-2-1", "la": 54.03, "lo": -2.91, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 615 }, { "n": "HEYSHAM-2-2", "la": 54.03, "lo": -2.91, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 615 }, { "n": "TORNESS-1", "la": 55.97, "lo": -2.4, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 590 }, { "n": "TORNESS-2", "la": 55.97, "lo": -2.4, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 590 }, { "n": "DUNGENESS B-1", "la": 50.91, "lo": 0.96, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 520 }, { "n": "DUNGENESS B-2", "la": 50.91, "lo": 0.96, "c": "United Kingdom", "s": "Permanent Shutdown", "rt": "GCR", "rm": "AGR", "ca": 520 }, { "n": "ARKANSAS ONE-1", "la": 35.31, "lo": -93.23, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "B&W LLP", "ca": 836 }, { "n": "BROWNS FERRY-1", "la": 34.7, "lo": -87.12, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1101 }, { "n": "BROWNS FERRY-2", "la": 34.7, "lo": -87.12, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1104 }, { "n": "BROWNS FERRY-3", "la": 34.7, "lo": -87.12, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1105 }, { "n": "BRAIDWOOD-1", "la": 41.24, "lo": -88.21, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1178 }, { "n": "BRAIDWOOD-2", "la": 41.24, "lo": -88.21, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1152 }, { "n": "BYRON-1", "la": 42.08, "lo": -89.28, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1164 }, { "n": "BYRON-2", "la": 42.08, "lo": -89.28, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1136 }, { "n": "CALLAWAY-1", "la": 38.76, "lo": -91.78, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1190 }, { "n": "CALVERT CLIFFS-1", "la": 38.43, "lo": -76.44, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE 2Lp", "ca": 867 }, { "n": "CALVERT CLIFFS-2", "la": 38.43, "lo": -76.44, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE 2Lp", "ca": 862 }, { "n": "CATAWBA-1", "la": 35.05, "lo": -81.07, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1129 }, { "n": "CATAWBA-2", "la": 35.05, "lo": -81.07, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1129 }, { "n": "CLINTON-1", "la": 40.17, "lo": -88.83, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-6", "ca": 1065 }, { "n": "COLUMBIA", "la": 46.47, "lo": -119.33, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 1107 }, { "n": "COMANCHE PEAK-1", "la": 32.3, "lo": -97.79, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1218 }, { "n": "COMANCHE PEAK-2", "la": 32.3, "lo": -97.79, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1207 }, { "n": "COOK-1", "la": 41.98, "lo": -86.57, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1009 }, { "n": "COOK-2", "la": 41.98, "lo": -86.57, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1107 }, { "n": "COOPER", "la": 40.36, "lo": -95.64, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 769 }, { "n": "DAVIS BESSE-1", "la": 41.6, "lo": -83.09, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "B&W LLP", "ca": 894 }, { "n": "DIABLO CANYON-1", "la": 35.21, "lo": -120.85, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1122 }, { "n": "DIABLO CANYON-2", "la": 35.21, "lo": -120.85, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1118 }, { "n": "DRESDEN-2", "la": 41.39, "lo": -88.27, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-3", "ca": 867 }, { "n": "DRESDEN-3", "la": 41.39, "lo": -88.27, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-3", "ca": 867 }, { "n": "FARLEY-1", "la": 31.22, "lo": -85.11, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 851 }, { "n": "FARLEY-2", "la": 31.22, "lo": -85.11, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 860 }, { "n": "FERMI-2", "la": 41.96, "lo": -83.26, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1122 }, { "n": "GRAND GULF-1", "la": 32.01, "lo": -91.05, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-6", "ca": 1400 }, { "n": "HATCH-1", "la": 31.93, "lo": -82.34, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 857 }, { "n": "HATCH-2", "la": 31.93, "lo": -82.34, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 883 }, { "n": "HOPE CREEK-1", "la": 39.46, "lo": -75.54, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1061 }, { "n": "LASALLE-1", "la": 41.24, "lo": -88.67, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 1078 }, { "n": "LASALLE-2", "la": 41.24, "lo": -88.67, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 1078 }, { "n": "LIMERICK-1", "la": 40.22, "lo": -75.59, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1134 }, { "n": "LIMERICK-2", "la": 40.22, "lo": -75.59, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1134 }, { "n": "MCGUIRE-1", "la": 35.43, "lo": -80.95, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1100 }, { "n": "MCGUIRE-2", "la": 35.43, "lo": -80.95, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1100 }, { "n": "MILLSTONE-2", "la": 41.31, "lo": -72.17, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE 2Lp", "ca": 869 }, { "n": "MILLSTONE-3", "la": 41.31, "lo": -72.17, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1227 }, { "n": "MONTICELLO", "la": 45.33, "lo": -93.85, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-3", "ca": 647 }, { "n": "NINE MILE POINT-1", "la": 43.52, "lo": -76.41, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-2", "ca": 621 }, { "n": "NINE MILE POINT-2", "la": 43.52, "lo": -76.41, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-5", "ca": 1281 }, { "n": "NORTH ANNA-1", "la": 38.06, "lo": -77.79, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 903 }, { "n": "NORTH ANNA-2", "la": 38.06, "lo": -77.79, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 903 }, { "n": "OCONEE-1", "la": 34.79, "lo": -82.9, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "B&W LLP", "ca": 846 }, { "n": "OCONEE-2", "la": 34.79, "lo": -82.9, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "B&W LLP", "ca": 846 }, { "n": "OCONEE-3", "la": 34.79, "lo": -82.9, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "B&W LLP", "ca": 846 }, { "n": "PALO VERDE-1", "la": 33.39, "lo": -112.86, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE System 80", "ca": 1311 }, { "n": "PALO VERDE-2", "la": 33.39, "lo": -112.86, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE System 80", "ca": 1314 }, { "n": "PALO VERDE-3", "la": 33.39, "lo": -112.86, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE System 80", "ca": 1312 }, { "n": "PEACH BOTTOM-2", "la": 39.76, "lo": -76.27, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1300 }, { "n": "PEACH BOTTOM-3", "la": 39.76, "lo": -76.27, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1300 }, { "n": "PERRY-1", "la": 41.8, "lo": -81.14, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-6", "ca": 1231 }, { "n": "POINT BEACH-1", "la": 44.28, "lo": -87.54, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 591 }, { "n": "POINT BEACH-2", "la": 44.28, "lo": -87.54, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 591 }, { "n": "PRAIRIE ISLAND-1", "la": 44.62, "lo": -92.63, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 522 }, { "n": "PRAIRIE ISLAND-2", "la": 44.62, "lo": -92.63, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.2Lp", "ca": 519 }, { "n": "QUAD CITIES-1", "la": 41.73, "lo": -90.31, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-3", "ca": 869 }, { "n": "QUAD CITIES-2", "la": 41.73, "lo": -90.31, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-3", "ca": 869 }, { "n": "RIVER BEND-1", "la": 30.76, "lo": -91.33, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-6", "ca": 967 }, { "n": "ROBINSON-2", "la": 34.4, "lo": -80.16, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 741 }, { "n": "SALEM-1", "la": 39.46, "lo": -75.54, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1169 }, { "n": "SALEM-2", "la": 39.46, "lo": -75.54, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1158 }, { "n": "SEABROOK-1", "la": 42.9, "lo": -70.85, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1246 }, { "n": "SEQUOYAH-1", "la": 35.23, "lo": -85.09, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1148 }, { "n": "SEQUOYAH-2", "la": 35.23, "lo": -85.09, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1126 }, { "n": "SOUTH TEXAS-1", "la": 28.8, "lo": -96.05, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1280 }, { "n": "SOUTH TEXAS-2", "la": 28.8, "lo": -96.05, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1280 }, { "n": "ST. LUCIE-1", "la": 27.35, "lo": -80.25, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE 2Lp", "ca": 839 }, { "n": "ST. LUCIE-2", "la": 27.35, "lo": -80.25, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE 2Lp", "ca": 839 }, { "n": "SUMMER-1", "la": 34.3, "lo": -81.32, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 966 }, { "n": "SURRY-1", "la": 37.17, "lo": -76.7, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 799 }, { "n": "SURRY-2", "la": 37.17, "lo": -76.7, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 799 }, { "n": "SUSQUEHANNA-1", "la": 41.09, "lo": -76.15, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1257 }, { "n": "SUSQUEHANNA-2", "la": 41.09, "lo": -76.15, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 1257 }, { "n": "TURKEY POINT-3", "la": 25.44, "lo": -80.33, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 693 }, { "n": "TURKEY POINT-4", "la": 25.44, "lo": -80.33, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 693 }, { "n": "VOGTLE-1", "la": 33.14, "lo": -81.76, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1109 }, { "n": "VOGTLE-2", "la": 33.14, "lo": -81.76, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1127 }, { "n": "VOGTLE-3", "la": 33.14, "lo": -81.76, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "AP1000", "ca": 1114 }, { "n": "VOGTLE-4", "la": 33.14, "lo": -81.76, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "AP1000", "ca": 1114 }, { "n": "WATERFORD-3", "la": 30.0, "lo": -90.47, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "CE 2Lp", "ca": 1168 }, { "n": "WATTS BAR-1", "la": 35.61, "lo": -84.79, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1123 }, { "n": "WATTS BAR-2", "la": 35.61, "lo": -84.79, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1165 }, { "n": "WOLF CREEK", "la": 38.24, "lo": -95.69, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.4Lp", "ca": 1160 }, { "n": "BEAVER VALLEY-1", "la": 40.62, "lo": -80.43, "c": "United States", "s": "Operational", "rt": "PWR", "rm": "Westing.3Lp", "ca": 908 }, { "n": "BRUNSWICK-1", "la": 33.96, "lo": -78.01, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 938 }, { "n": "BRUNSWICK-2", "la": 33.96, "lo": -78.01, "c": "United States", "s": "Operational", "rt": "BWR", "rm": "BWR-4", "ca": 932 }, { "n": "THREE MILE ISLAND-1", "la": 40.15, "lo": -76.72, "c": "United States", "s": "Permanent Shutdown", "rt": "PWR", "rm": "B&W LLP", "ca": 786 }];
+
+    (async function () {
+      // === COLORS ===
+      var RCOL = { Operational: "#10b981", "Under Construction": "#f59e0b", Planned: "#a78bfa", "Permanent Shutdown": "#ef4444", "Suspended Operation": "#64748b" };
+      var RGLOW = { Operational: "rgba(16,185,129,.6)", "Under Construction": "rgba(245,158,11,.6)", "Permanent Shutdown": "rgba(239,68,68,.4)", "Suspended Operation": "rgba(100,116,139,.4)" };
+      function rc(s) { return RCOL[s] || "#64748b" }
+      function rg(s) { return RGLOW[s] || "rgba(100,116,139,.3)" }
+
+      // === WORLD TOPOLOGY ===
+      var countries;
+      try {
+        var w = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(function (r) {
+          return r.json()
+        });
+        countries = topojson.feature(w, w.objects.countries)
+      } catch (e) {
+        countries = { type: "FeatureCollection", features: [] }
+      }
+
+      // === REACTOR DATA (embedded) ===
+      var reactors = REACTORS_RAW.map(function (d) { return { name: d.n, lat: d.la, lon: d.lo, country: d.c, status: d.s, type: d.rt, model: d.rm, capacity: d.ca, kind: "reactor" } });
+
+      // === GRID DATA (loaded from compact_power.py JSON files) ===
+      var gridLines = [];     // [{coords, voltage, name, lineType, geojson}]
+      var substations = [];   // [{lat, lon, name, voltage, kind}]
+      var powerPlants = [];   // [{lat, lon, name, source, kind}]
+
+      // === LAYERS ===
+      var layers = { reactors: false, hvLines: true, mvLines: true, cables: true, substations: false, plants: false };
+
+      // === LOAD STATUS ===
+      var statusEl = document.getElementById("load-status");
+      function showStatus(msg, loading) {
+        statusEl.textContent = msg;
+        statusEl.className = "load-status visible" + (loading ? " loading" : "");
+        if (!loading) setTimeout(function () { statusEl.classList.remove("visible") }, 5000)
+      }
+
+      // =========================================================================
+      // STRATEGY 2: SPATIAL GRID INDEX
+      // Lines and substations are bucketed into 5°x5° cells keyed by "lat,lon".
+      // Each frame, we determine visible cells and only iterate those.
+      // =========================================================================
+      var CELL_SIZE = 5;
+      var spatialGrid = {};  // "latBucket,lonBucket" -> {hv:[], mv:[], cable:[], subs:[], plants:[]}
+
+      function cellKey(lat, lon) {
+        return (Math.floor(lat / CELL_SIZE) * CELL_SIZE) + "," + (Math.floor(lon / CELL_SIZE) * CELL_SIZE)
+      }
+
+      function getCell(lat, lon) {
+        var k = cellKey(lat, lon);
+        if (!spatialGrid[k]) spatialGrid[k] = { hv: [], mv: [], cable: [], subs: [], plants: [] };
+        return spatialGrid[k]
+      }
+
+      function ingestGridFile(data) {
+        if (data.lines) {
+          data.lines.forEach(function (ln) {
+            var coords = ln.c; if (!coords || coords.length < 2) return;
+            var v = ln.v || 0;
+            var t = ln.t || "line";
+            var midIdx = Math.floor(coords.length / 2);
+            var midLat = coords[midIdx][1], midLon = coords[midIdx][0];
+            var entry = { c: coords, v: v, n: ln.n || "", geojson: { type: "LineString", coordinates: coords } };
+            var cell = getCell(midLat, midLon);
+            if (t === "cable") cell.cable.push(entry);
+            else if (v >= 200000) cell.hv.push(entry);
+            else cell.mv.push(entry);
+            gridLineCount++
+          })
+        }
+        if (data.substations) {
+          data.substations.forEach(function (s) {
+            var sub = { lon: s.lo, lat: s.la, name: s.n || "Substation", voltage: s.v || "", kind: "substation" };
+            getCell(s.la, s.lo).subs.push(sub);
+            substations.push(sub); substationCount++
+          })
+        }
+        if (data.plants) {
+          data.plants.forEach(function (p) {
+            var plant = { lon: p.lo, lat: p.la, name: p.n || "Power Plant", source: p.src || "", mw: p.mw || "", kind: "plant" };
+            getCell(p.la, p.lo).plants.push(plant);
+            powerPlants.push(plant); plantCount++
+          })
+        }
+        gridDirty = true
+      }
+
+      var gridLineCount = 0, substationCount = 0, plantCount = 0;
+
+      // =========================================================================
+      // STRATEGY 4: OFFSCREEN CANVAS CACHE
+      // Grid lines are rendered to an offscreen canvas and only redrawn when
+      // the view changes (rotation/projection switch/layer toggle/resize).
+      // The main canvas composites this cached bitmap each frame.
+      // =========================================================================
+      var offCanvas = document.createElement("canvas");
+      var offCtx = offCanvas.getContext("2d");
+      var gridDirty = true;        // true = offscreen needs redraw
+      var lastDrawnRot = { x: -999, y: -999, proj: "" };  // track last state
+
+      function markGridDirty() { gridDirty = true }
+
+      // =========================================================================
+      // VISIBLE CELL DETERMINATION
+      // For globe: use geoDistance from center to cell center, keep cells < ~100°
+      // For 2D: keep all cells (or use projection bounds)
+      // =========================================================================
+      function getVisibleCellKeys() {
+        var keys = [];
+        var center = projection.invert([width / 2, height / 2]);
+        if (!center) return Object.keys(spatialGrid);
+        var cLon = center[0], cLat = center[1];
+        for (var k in spatialGrid) {
+          var parts = k.split(",");
+          var cellLat = +parts[0] + CELL_SIZE / 2;
+          var cellLon = +parts[1] + CELL_SIZE / 2;
+          if (isGlobe()) {
+            var d = d3.geoDistance([cellLon, cellLat], [cLon, cLat]);
+            if (d < Math.PI / 2 + 0.15) keys.push(k);  // slightly beyond hemisphere
+          } else { keys.push(k) }
+        }
+        return keys
+      }
+
+      // =========================================================================
+      // STRATEGY 3: BATCHED PATH DRAWING (on offscreen canvas)
+      // Instead of beginPath/stroke per line, we batch all lines of the same
+      // style into a single path, then stroke once. 3 strokes total instead of 1M.
+      // =========================================================================
+      function renderGridToOffscreen() {
+        // --- Power lines: render directly to the overlay lines canvas ---
+        linesCtx.clearRect(0, 0, width, height);
+        var linesPath = d3.geoPath(projection, linesCtx);
+        var visKeys = getVisibleCellKeys();
+
+        // Batch 1: MV lines
+        if (layers.mvLines) {
+          linesCtx.beginPath();
+          for (var ki = 0; ki < visKeys.length; ki++) {
+            var cell = spatialGrid[visKeys[ki]];
+            for (var i = 0; i < cell.mv.length; i++)linesPath(cell.mv[i].geojson)
+          }
+          linesCtx.strokeStyle = "rgba(56,189,248,.22)"; linesCtx.lineWidth = .7; linesCtx.stroke()
+        }
+
+        // Batch 2: HV lines
+        if (layers.hvLines) {
+          linesCtx.beginPath();
+          for (var ki = 0; ki < visKeys.length; ki++) {
+            var cell = spatialGrid[visKeys[ki]];
+            for (var i = 0; i < cell.hv.length; i++)linesPath(cell.hv[i].geojson)
+          }
+          linesCtx.strokeStyle = "rgba(245,158,11,.45)"; linesCtx.lineWidth = 1.4; linesCtx.stroke()
+        }
+
+        // Batch 3: Cables
+        if (layers.cables) {
+          linesCtx.beginPath();
+          for (var ki = 0; ki < visKeys.length; ki++) {
+            var cell = spatialGrid[visKeys[ki]];
+            for (var i = 0; i < cell.cable.length; i++)linesPath(cell.cable[i].geojson)
+          }
+          linesCtx.strokeStyle = "rgba(16,185,129,.35)"; linesCtx.lineWidth = 1.0; linesCtx.stroke()
+        }
+
+        // --- Substations & plants: render to offscreen canvas (composited onto main) ---
+        offCanvas.width = canvas.width; offCanvas.height = canvas.height;
+        offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        offCtx.clearRect(0, 0, width, height);
+
+        // Substations (batched fill)
+        if (layers.substations) {
+          offCtx.beginPath();
+          for (var ki = 0; ki < visKeys.length; ki++) {
+            var cell = spatialGrid[visKeys[ki]];
+            for (var i = 0; i < cell.subs.length; i++) {
+              var s = cell.subs[i], pos = projection([s.lon, s.lat]);
+              if (!pos) continue;
+              if (isGlobe()) { var d = d3.geoDistance([s.lon, s.lat], projection.invert([width / 2, height / 2])); if (d > Math.PI / 2) continue }
+              offCtx.moveTo(pos[0] + 1.5, pos[1]); offCtx.arc(pos[0], pos[1], 1.5, 0, Math.PI * 2)
+            }
+          }
+          offCtx.fillStyle = "rgba(167,139,250,.55)"; offCtx.fill()
+        }
+
+        // Power plants (batched)
+        if (layers.plants) {
+          offCtx.beginPath();
+          for (var ki = 0; ki < visKeys.length; ki++) {
+            var cell = spatialGrid[visKeys[ki]];
+            for (var i = 0; i < cell.plants.length; i++) {
+              var p = cell.plants[i], pos = projection([p.lon, p.lat]);
+              if (!pos) continue;
+              if (isGlobe()) { var d = d3.geoDistance([p.lon, p.lat], projection.invert([width / 2, height / 2])); if (d > Math.PI / 2) continue }
+              offCtx.moveTo(pos[0] + 2, pos[1]); offCtx.arc(pos[0], pos[1], 2, 0, Math.PI * 2)
+            }
+          }
+          offCtx.fillStyle = "rgba(251,146,60,.6)"; offCtx.fill()
+        }
+
+        gridDirty = false;
+        lastDrawnRot = { x: rotX, y: rotY, proj: currentProjKey }
+      }
+
+      async function loadAllGridData() {
+        if (GRID_DATA_URLS.length === 0) {
+          showStatus("No grid data files configured — edit GRID_DATA_URLS in the HTML", false);
+          return
+        }
+        showStatus("Loading " + GRID_DATA_URLS.length + " grid data file(s)...", true);
+        var results = await Promise.allSettled(
+          GRID_DATA_URLS.map(function (url) {
+            return fetch(url).then(function (r) {
+              if (!r.ok) throw new Error(url + ": HTTP " + r.status);
+              return r.json()
+            })
+          }));
+        var loaded = 0, failed = 0;
+        results.forEach(function (r, i) {
+          if (r.status === "fulfilled") { ingestGridFile(r.value); loaded++ }
+          else { console.error("Failed to load " + GRID_DATA_URLS[i] + ":", r.reason); failed++ }
+        });
+        //updateStats();
+        showStatus(loaded + " file(s) loaded: " + gridLineCount.toLocaleString() + " lines indexed into " + Object.keys(spatialGrid).length + " spatial cells" + (failed ? " (" + failed + " failed)" : ""), false)
+      }
+
+      // === TOGGLE BUTTONS ===
+      var togglesEl = document.getElementById("toggles");
+      [{ id: "reactors", label: "Reactors", color: "#10b981" },
+      { id: "hvLines", label: "HV Lines", color: "#f59e0b" },
+      { id: "mvLines", label: "MV Lines", color: "#38bdf8" },
+      { id: "cables", label: "Cables", color: "#10b981" },
+      { id: "substations", label: "Substations", color: "#a78bfa" },
+      { id: "plants", label: "Plants", color: "#fb923c" }
+      ].forEach(function (t) {
+        var b = document.createElement("button");
+        b.className = "toggle-btn active";
+        b.innerHTML = '<span class="indicator" style="background:' + t.color + '"></span>' + t.label;
+        b.addEventListener("click", function () { layers[t.id] = !layers[t.id]; b.classList.toggle("active"); markGridDirty() });
+        togglesEl.appendChild(b)
+      });
+
+      // === CANVAS ===
+      var canvas = document.getElementById("globe"), ctx = canvas.getContext("2d"), dpr = window.devicePixelRatio || 1, width, height, radius;
+      var linesCanvas = document.getElementById("lines-canvas"), linesCtx = linesCanvas.getContext("2d");
+      function resize() {
+        width = window.innerWidth; height = window.innerHeight;
+        canvas.width = width * dpr; canvas.height = height * dpr;
+        canvas.style.width = width + "px"; canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        linesCanvas.width = width * dpr; linesCanvas.height = height * dpr;
+        linesCanvas.style.width = width + "px"; linesCanvas.style.height = height + "px";
+        linesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (isGlobe()) {
+          radius = Math.min(width, height) * .38;
+          projection.translate([width / 2, height / 2]).scale(radius);
+        } else {
+          radius = Math.min(width, height) * .38;
+          var s2d = Math.min(width / 6.5, height / 3.5);
+          projection.translate([width / 2, height / 2]).scale(s2d).rotate([-rotY, -rotX, 0]);
+        }
+        var g = document.getElementById("glow");
+        g.style.width = g.style.height = (radius * 2.4) + "px";
+        g.style.left = (width / 2 - radius * 1.2) + "px";
+        g.style.top = (height / 2 - radius * 1.2) + "px";
+        markGridDirty()
+      }
+
+      // === PROJECTION SYSTEM ===
+      var PROJ_DEFS = {
+        orthographic: function () { return d3.geoOrthographic().clipAngle(90).precision(.5) },
+        equirectangular: function () { return d3.geoEquirectangular().precision(.5) },
+        mercator: function () { return d3.geoMercator().precision(.5) },
+        transverseMercator: function () { return d3.geoTransverseMercator().precision(.5) },
+        naturalEarth1: function () { return d3.geoNaturalEarth1().precision(.5) },
+        mollweide: function () { return d3.geoMollweide().precision(.5) },
+        robinson: function () { return d3.geoNaturalEarth1().precision(.5) },
+        sinusoidal: function () { return d3.geoSinusoidal().precision(.5) },
+        eckert4: function () { return d3.geoEckert4().precision(.5) },
+        albers: function () { return d3.geoAlbers().precision(.5) },
+        conicEquidistant: function () { return d3.geoConicEquidistant().precision(.5) },
+        conicEqualArea: function () { return d3.geoConicEqualArea().precision(.5) },
+        azimuthalEqualArea: function () { return d3.geoAzimuthalEqualArea().clipAngle(180).precision(.5) },
+        azimuthalEquidistant: function () { return d3.geoAzimuthalEquidistant().clipAngle(180).precision(.5) },
+        stereographic: function () { return d3.geoStereographic().clipAngle(150).precision(.5) },
+        gnomonic: function () { return d3.geoGnomonic().clipAngle(70).precision(.5) }
+      };
+
+      var currentProjKey = "naturalEarth1";
+      var projection = PROJ_DEFS[currentProjKey]();
+      var path = d3.geoPath(projection, ctx);
+      var graticule = d3.geoGraticule10();
+
+      function isGlobe() { return currentProjKey === "orthographic" }
+
+      function switchProjection(key) {
+        if (!PROJ_DEFS[key]) return;
+        currentProjKey = key;
+        projection = PROJ_DEFS[key]();
+        path = d3.geoPath(projection, ctx);
+        resize();
+        markGridDirty();
+        document.getElementById("glow").style.display = isGlobe() ? "block" : "none"
+      }
+
+      document.getElementById("proj-sel").addEventListener("change", function (e) { switchProjection(e.target.value) });
+
+      // Centered on US, no auto-rotate
+      var rotX = 38, rotY = 95, autoRot = false, drag = false, lastM = null, vel = { x: 0, y: 0 };
+
+      canvas.addEventListener("mousedown", function (e) { drag = true; lastM = { x: e.clientX, y: e.clientY }; vel = { x: 0, y: 0 } });
+      window.addEventListener("mousemove", function (e) {
+        if (drag && lastM) {
+          var dx = e.clientX - lastM.x, dy = e.clientY - lastM.y;
+          rotY += dx * .3; rotX -= dy * .3; rotX = Math.max(-80, Math.min(80, rotX));
+          vel = { x: dx * .3, y: -dy * .3 }; lastM = { x: e.clientX, y: e.clientY }
+        }
+        handleHover(e.clientX, e.clientY)
+      });
+      window.addEventListener("mouseup", function () { drag = false; lastM = null });
+      canvas.addEventListener("touchstart", function (e) { e.preventDefault(); drag = true; lastM = { x: e.touches[0].clientX, y: e.touches[0].clientY } }, { passive: false });
+      canvas.addEventListener("touchmove", function (e) { e.preventDefault(); if (drag && lastM) { var t = e.touches[0]; rotY += (t.clientX - lastM.x) * .3; rotX -= (t.clientY - lastM.y) * .3; rotX = Math.max(-80, Math.min(80, rotX)); lastM = { x: t.clientX, y: t.clientY } } }, { passive: false });
+      canvas.addEventListener("touchend", function () { drag = false });
+
+      // === TOOLTIP ===
+      var tooltip = document.getElementById("tooltip"), ttN = document.getElementById("tt-name"), ttC = document.getElementById("tt-country"), ttD = document.getElementById("tt-detail"), hovItem = null;
+      function handleHover(mx, my) {
+        var closest = null, cd = 14;
+        if (layers.reactors) { for (var i = 0; i < reactors.length; i++) { var r = reactors[i], pos = projection([r.lon, r.lat]); if (!pos) continue; if (isGlobe()) { var d = d3.geoDistance([r.lon, r.lat], projection.invert([width / 2, height / 2])); if (d > Math.PI / 2) continue } var dist = Math.hypot(pos[0] - mx, pos[1] - my); if (dist < cd) { cd = dist; closest = r } } }
+        if (layers.substations) { for (var i = 0; i < substations.length; i++) { var s = substations[i], pos = projection([s.lon, s.lat]); if (!pos) continue; if (isGlobe()) { var d = d3.geoDistance([s.lon, s.lat], projection.invert([width / 2, height / 2])); if (d > Math.PI / 2) continue } var dist = Math.hypot(pos[0] - mx, pos[1] - my); if (dist < cd) { cd = dist; closest = s } } }
+        if (layers.plants) { for (var i = 0; i < powerPlants.length; i++) { var p = powerPlants[i], pos = projection([p.lon, p.lat]); if (!pos) continue; if (isGlobe()) { var d = d3.geoDistance([p.lon, p.lat], projection.invert([width / 2, height / 2])); if (d > Math.PI / 2) continue } var dist = Math.hypot(pos[0] - mx, pos[1] - my); if (dist < cd) { cd = dist; closest = p } } }
+        if (closest) {
+          hovItem = closest; ttN.textContent = closest.name;
+          if (closest.kind === "reactor") {
+            ttC.textContent = closest.country;
+            var det = "Status: <span style=color:" + rc(closest.status) + ">" + closest.status + "</span>";
+            if (closest.type) det += "<br>Type: <span>" + closest.type + "</span>";
+            if (closest.model) det += "<br>Model: <span>" + closest.model + "</span>";
+            if (closest.capacity) det += "<br>Capacity: <span>" + closest.capacity + " MWe</span>";
+            ttD.innerHTML = det
+          }
+          else if (closest.kind === "substation") {
+            ttC.textContent = "Substation";
+            ttD.innerHTML = closest.voltage ? "Voltage: <span>" + closest.voltage + "</span>" : ""
+          }
+          else if (closest.kind === "plant") {
+            ttC.textContent = "Power Plant";
+            var det = "";
+            if (closest.source) det += "Source: <span>" + closest.source + "</span>";
+            if (closest.mw) det += (det ? "<br>" : "") + "Output: <span>" + closest.mw + "</span>";
+            ttD.innerHTML = det
+          }
+          var tx = mx + 16, ty = my - 10; if (tx + 280 > width) tx = mx - 290; if (ty + 160 > height) ty = my - 160;
+          tooltip.style.left = tx + "px"; tooltip.style.top = ty + "px"; tooltip.classList.add("visible")
+        }
+        else { hovItem = null; tooltip.classList.remove("visible") }
+      }
+
+      // === RENDER ===
+      var fc = 0;
+      function render() {
+        requestAnimationFrame(render); fc++;
+        if (!drag) {
+          rotY += vel.x; rotX += vel.y; vel.x *= .92; vel.y *= .92;
+          if (Math.abs(vel.x) < .001) vel.x = 0; if (Math.abs(vel.y) < .001) vel.y = 0
+        }
+        rotX = Math.max(-80, Math.min(80, rotX));
+        projection.rotate([-rotY, -rotX, 0]);  // applies to all projections for centering
+        ctx.clearRect(0, 0, width, height);
+
+        // Ocean / background
+        ctx.beginPath(); path({ type: "Sphere" });
+        if (isGlobe()) {
+          var gr = ctx.createRadialGradient(width / 2 - radius * .3, height / 2 - radius * .3, 0, width / 2, height / 2, radius);
+          gr.addColorStop(0, "#131922"); gr.addColorStop(1, "#0a0e14");
+          ctx.fillStyle = gr; ctx.fill();
+        } else {
+          ctx.fillStyle = "#0d1117";
+          ctx.fill();
+        }
+        ctx.strokeStyle = "rgba(34,211,238,.08)";
+        ctx.lineWidth = isGlobe() ? 1.5 : 0.6;
+        ctx.stroke();
+
+        // Graticule
+        ctx.beginPath(); path(graticule); ctx.strokeStyle = "rgba(255,255,255,.02)"; ctx.lineWidth = .4; ctx.stroke();
+
+        // Countries
+        if (countries.features.length) {
+          ctx.beginPath();
+          path(countries);
+          ctx.fillStyle = "#0d1117";
+          ctx.fill(); ctx.strokeStyle = "#222a38";
+          //ctx.lineWidth = .3;
+          //ctx.stroke()
+        }
+
+        // === GRID: offscreen cache composite (strategies 2+3+4) ===
+        // Redraw offscreen only if rotation/projection changed since last draw
+        if (gridDirty || Math.abs(rotX - lastDrawnRot.x) > 0.05 || Math.abs(rotY - lastDrawnRot.y) > 0.05 || currentProjKey !== lastDrawnRot.proj) {
+          renderGridToOffscreen()
+        }
+        // Composite the cached grid bitmap onto the main canvas
+        if (offCanvas.width > 0) ctx.drawImage(offCanvas, 0, 0, offCanvas.width / dpr, offCanvas.height / dpr)
+
+        // === REACTORS ===
+        if (layers.reactors) {
+          var tm = fc * .03;
+          for (var i = 0; i < reactors.length; i++) {
+            var r = reactors[i], pos = projection([r.lon, r.lat]);
+            if (!pos) continue;
+            if (isGlobe()) { var d = d3.geoDistance([r.lon, r.lat], projection.invert([width / 2, height / 2])); if (d > Math.PI / 2) continue }
+            var col = rc(r.status), isH = hovItem === r, bR = isH ? 5 : (r.status === "Operational" ? 2.6 : 2);
+            ctx.beginPath(); ctx.arc(pos[0], pos[1], bR + 4, 0, Math.PI * 2); ctx.fillStyle = rg(r.status); ctx.fill();
+            if (r.status === "Operational") {
+              var ph = (tm + r.lat * .1 + r.lon * .1) % (Math.PI * 2), pr = bR + 3 + Math.sin(ph) * 3, pa = .15 - Math.sin(ph) * .1;
+              if (pa > 0) { ctx.beginPath(); ctx.arc(pos[0], pos[1], pr, 0, Math.PI * 2); ctx.strokeStyle = "rgba(16,185,129," + Math.max(0, pa) + ")"; ctx.lineWidth = .8; ctx.stroke() }
+            }
+            ctx.beginPath(); ctx.arc(pos[0], pos[1], bR, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+            if (isH) { ctx.beginPath(); ctx.arc(pos[0], pos[1], 1.5, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill() }
+          }
+        }
+
+        // Atmosphere (globe only)
+        if (isGlobe()) { ctx.beginPath(); path({ type: "Sphere" }); ctx.strokeStyle = "rgba(34,211,238,.04)"; ctx.lineWidth = 4; ctx.stroke() }
+      }
+
+      // === INIT ===
+      resize();
+      window.addEventListener("resize", resize);
+      loadAllGridData();
+      render();
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk { if \\(length\\($0\\) > 500\\) print NR\": \"length\\($0\\) } *)",
+      "Bash(npm --version)",
+      "Bash(mkdir -p public/data legacy src/lib/webgl src/components)",
+      "Bash(mv africa-power-compact.json asia-power-compact.json australia-power-compact.json central-america-power-compact.json europe-power-compact.json north-america-power-compact.json south-america-power-compact.json public/data/)",
+      "Read(//c/Users/Matt/Desktop/cyborg-earth/**)",
+      "Bash(sed 's/^[[:space:]]*\\\\/\\\\///')",
+      "Bash(node -e \"var d=require\\('C:/Users/Matt/Desktop/cyborg-earth/src/lib/reactors-data.json'\\); console.log\\('reactors:', d.length, 'first:', JSON.stringify\\(d[0]\\)\\)\")",
+      "Bash(mv globe.html legacy/globe.html)",
+      "Bash(sed -i 's/[[:space:]]*;*[[:space:]]*$//' src/lib/reactors-data.json)",
+      "Bash(node -e \"var d=require\\('C:/Users/Matt/Desktop/cyborg-earth/src/lib/reactors-data.json'\\); console.log\\('reactors:', d.length\\); console.log\\(JSON.stringify\\(d[0]\\)\\)\")",
+      "Bash(ls . public)"
+    ]
+  }
+}
