@@ -20,10 +20,14 @@ export function pick(grid, projection, mx, my, layersOn, isGlobe, viewport) {
     ? projection.invert([viewport[0] / 2, viewport[1] / 2])
     : null;
 
+  // Reject hidden layers inside the cell walk, so points on an off layer never
+  // reach the projection math below.
+  const accept = (item) => layersOn[item.kind] === true;
+  const candidates = grid.near(geo[1], geo[0], radiusDeg, [], accept);
+
   let closest = null;
   let best = PICK_RADIUS_PX;
-  for (const item of grid.near(geo[1], geo[0], radiusDeg)) {
-    if (!layersOn[item.kind]) continue;
+  for (const item of candidates) {
     const pos = projection([item.lon, item.lat]);
     if (!pos) continue;
     if (center && geoDistance([item.lon, item.lat], center) > Math.PI / 2) continue;
@@ -51,6 +55,14 @@ export function tooltipContent(item, reactorColorFn) {
       subtitle: 'Substation',
       rows: item.voltage ? [{ label: 'Voltage', value: item.voltage }] : [],
     };
+  }
+  // Tagged features have no name of their own — the humanised tag value is the
+  // heading, and the subtitle names the network it belongs to.
+  if (item.kind === 'railNode') {
+    return { name: item.name, subtitle: 'Railway', rows: [] };
+  }
+  if (item.kind === 'telecomPoint') {
+    return { name: item.name, subtitle: 'Telecom', rows: [] };
   }
   const rows = [];
   if (item.source) rows.push({ label: 'Source', value: item.source });

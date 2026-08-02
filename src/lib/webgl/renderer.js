@@ -71,8 +71,15 @@ export class GlobeRenderer {
     // data-dependent buffers (filled later)
     this.countries = null;
     this.graticule = null;
-    this.grid = { mv: null, hv: null, cable: null };
-    this.points = { substations: null, plants: null };
+    this.grid = {
+      mv: null, hv: null, cable: null, rail: null, telecom: null, subsea: null,
+    };
+    this.points = {
+      substations: null,
+      plants: null,
+      railNodes: null,
+      telecomPoints: null,
+    };
     this.reactors = null; // { pos, coreColor, glowColor, size, count, pulsePos, pulseCount }
     this.hoverBuf = this.gl.createBuffer();
   }
@@ -120,15 +127,16 @@ export class GlobeRenderer {
     this.graticule = this._geoBuffer(segs);
   }
 
-  setGrid({ mv, hv, cable }) {
-    if (mv.vertexCount) this.grid.mv = this._geoBuffer(mv, 'int16');
-    if (hv.vertexCount) this.grid.hv = this._geoBuffer(hv, 'int16');
-    if (cable.vertexCount) this.grid.cable = this._geoBuffer(cable, 'int16');
+  setGrid(byCategory) {
+    for (const [cat, segs] of Object.entries(byCategory)) {
+      if (segs && segs.vertexCount) this.grid[cat] = this._geoBuffer(segs, 'int16');
+    }
   }
 
-  setPoints({ substations, plants }) {
-    if (substations.length) this.points.substations = this._pointBuffer(substations);
-    if (plants.length) this.points.plants = this._pointBuffer(plants);
+  setPoints(byLayer) {
+    for (const [layer, positions] of Object.entries(byLayer)) {
+      if (positions && positions.length) this.points[layer] = this._pointBuffer(positions);
+    }
   }
 
   setReactors({ positions, coreColors, glowColors, sizes, pulsePositions }) {
@@ -267,7 +275,7 @@ export class GlobeRenderer {
       gl.drawArrays(gl.TRIANGLES, 0, this.countries.count);
     }
 
-    // 5. Power grid lines
+    // 5. Infrastructure lines — rail and telecom underneath, power on top.
     setMode(GEO, FLAT, seam);
     const gridDraw = (buf, color) => {
       if (!buf) return;
@@ -275,24 +283,30 @@ export class GlobeRenderer {
       this._bindGeo(buf);
       gl.drawArrays(gl.LINES, 0, buf.count);
     };
+    if (s.layers.railLines) gridDraw(this.grid.rail, RENDER_COLORS.railLines);
+    if (s.layers.subseaCables) gridDraw(this.grid.subsea, RENDER_COLORS.subseaCables);
+    if (s.layers.telecom) gridDraw(this.grid.telecom, RENDER_COLORS.telecomLines);
     if (s.layers.mvLines) gridDraw(this.grid.mv, RENDER_COLORS.mvLines);
     if (s.layers.hvLines) gridDraw(this.grid.hv, RENDER_COLORS.hvLines);
     if (s.layers.cables) gridDraw(this.grid.cable, RENDER_COLORS.cables);
 
-    // 6. Substations & plants
+    // 6. Point features
     setMode(GEO, POINT, 0);
-    if (s.layers.substations && this.points.substations) {
-      this._constColor(RENDER_COLORS.substations);
-      this._constSize(3);
-      this._bindPoints(this.points.substations, null);
-      gl.drawArrays(gl.POINTS, 0, this.points.substations.count);
+    const pointDraw = (buf, color, size) => {
+      if (!buf) return;
+      this._constColor(color);
+      this._constSize(size);
+      this._bindPoints(buf, null);
+      gl.drawArrays(gl.POINTS, 0, buf.count);
+    };
+    if (s.layers.railNodes) pointDraw(this.points.railNodes, RENDER_COLORS.railNodes, 2);
+    if (s.layers.telecom) {
+      pointDraw(this.points.telecomPoints, RENDER_COLORS.telecomPoints, 4);
     }
-    if (s.layers.plants && this.points.plants) {
-      this._constColor(RENDER_COLORS.plants);
-      this._constSize(4);
-      this._bindPoints(this.points.plants, null);
-      gl.drawArrays(gl.POINTS, 0, this.points.plants.count);
+    if (s.layers.substations) {
+      pointDraw(this.points.substations, RENDER_COLORS.substations, 3);
     }
+    if (s.layers.plants) pointDraw(this.points.plants, RENDER_COLORS.plants, 4);
 
     // 7. Reactors: glow halo, pulse rings, cores
     if (s.layers.reactors && this.reactors) {

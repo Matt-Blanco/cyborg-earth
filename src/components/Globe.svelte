@@ -148,6 +148,8 @@
         reactor: currentLayers.reactors,
         substation: currentLayers.substations,
         plant: currentLayers.plants,
+        railNode: currentLayers.railNodes,
+        telecomPoint: currentLayers.telecom,
       };
       const item = pick(grid, projection, mx, my, layersOn, isGlobe(), [width, height]);
       if (item !== hovered) {
@@ -244,9 +246,12 @@
       renderer.setPoints({
         substations: result.substationPositions,
         plants: result.plantPositions,
+        railNodes: result.railNodePositions,
+        telecomPoints: result.telecomPointPositions,
       });
       for (const s of result.substations) grid.insert(s);
       for (const p of result.plants) grid.insert(p);
+      for (const f of result.pickableFeatures) grid.insert(f);
       dirty = true;
     }
 

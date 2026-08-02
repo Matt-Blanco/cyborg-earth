@@ -22,7 +22,7 @@
   </div>
   <div class="legend-item">
     <div class="legend-line cable"></div>
-    Underground / Submarine Cables
+    Underground / Submarine Power Cables
   </div>
   <div class="legend-item">
     <div class="legend-dot substation"></div>
@@ -31,6 +31,22 @@
   <div class="legend-item">
     <div class="legend-dot plant"></div>
     Power Plants
+  </div>
+  <div class="legend-item">
+    <div class="legend-line rail"></div>
+    Railways
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot rail"></div>
+    Rail Nodes (crossings, switches)
+  </div>
+  <div class="legend-item">
+    <div class="legend-line telecom"></div>
+    Telecom Lines &amp; Sites
+  </div>
+  <div class="legend-item">
+    <div class="legend-line subsea"></div>
+    Submarine Telecom Cables
   </div>
 </div>
 
@@ -119,5 +135,25 @@
 
   .legend-line.cable {
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.6), rgba(16, 185, 129, 0.2));
+  }
+
+  /* Railways and rail nodes share a hue — the mark shape carries the split. */
+  .legend-line.rail {
+    background: linear-gradient(90deg, rgba(244, 114, 182, 0.7), rgba(244, 114, 182, 0.25));
+  }
+
+  .legend-dot.rail {
+    background: #f472b6;
+    box-shadow: 0 0 6px rgba(244, 114, 182, 0.4);
+  }
+
+  .legend-line.telecom {
+    background: linear-gradient(90deg, rgba(163, 230, 53, 0.8), rgba(163, 230, 53, 0.3));
+  }
+
+  /* Land telecom and submarine cables share a hue — the domain carries the
+     split, as railways and rail nodes share theirs. */
+  .legend-line.subsea {
+    background: linear-gradient(90deg, rgba(163, 230, 53, 0.6), rgba(163, 230, 53, 0.2));
   }
 </style>
