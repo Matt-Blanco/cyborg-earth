@@ -33,7 +33,7 @@ export const GRID_DATA_URLS = [
   "data/europe-power-compact.json",
   "data/north-america-rail-telecom.json",
   "data/south-america-rail-telecom.json",
-  "data/europe-rail-and-telecom.json",
+  "data/europe-rail-telecom.json",
   "data/asia-rail-telecom.json",
   "data/africa-rail-telecom.json",
   "data/central-america-rail-telecom.json",
