@@ -31,7 +31,7 @@
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-panel);
     max-width: 280px;
   }
 
@@ -42,7 +42,7 @@
   .tooltip-name {
     font-size: 13px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-strong);
     margin-bottom: 4px;
   }
 

@@ -9,7 +9,8 @@
 <style>
   .load-status {
     position: fixed;
-    top: 88px;
+    /* Clears the controls trigger, which is the only thing left up here. */
+    top: 64px;
     right: 28px;
     z-index: 100;
     font-family: 'Geist Mono', monospace;

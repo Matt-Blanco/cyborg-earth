@@ -40,8 +40,31 @@ export function pick(grid, projection, mx, my, layersOn, isGlobe, viewport) {
   return closest;
 }
 
+// Which boundary area sits under the cursor. Points are tested first by the
+// caller and win ties: a substation is a 3px target the user aimed at, while an
+// area is whatever happens to be underneath, so letting a continent-sized
+// polygon outrank a dot would make the dots unhoverable.
+export function pickArea(index, projection, mx, my, layersOn, isGlobe, viewport) {
+  if (!index || !index.count) return null;
+  const geo = projection.invert ? projection.invert([mx, my]) : null;
+  if (!geo || !isFinite(geo[0]) || !isFinite(geo[1])) return null;
+
+  // Off the globe's near hemisphere, invert() still returns a coordinate — the
+  // far-side point that projects to the same pixel. Without this the cursor
+  // would hover regions hidden behind the planet.
+  if (isGlobe) {
+    const center = projection.invert([viewport[0] / 2, viewport[1] / 2]);
+    if (center && geoDistance(geo, center) > Math.PI / 2) return null;
+  }
+  return index.hit(geo[0], geo[1], (a) => layersOn[a.kind] === true);
+}
+
 // Tooltip rows for a picked item — mirrors the original tooltip markup.
 export function tooltipContent(item, reactorColorFn) {
+  // Boundary areas carry their own name and subtitle from AREA_DEFS.
+  if (item.isArea) {
+    return { name: item.name, subtitle: item.subtitle, rows: [] };
+  }
   if (item.kind === 'reactor') {
     const rows = [{ label: 'Status', value: item.status, color: reactorColorFn(item.status) }];
     if (item.type) rows.push({ label: 'Type', value: item.type });

@@ -10,16 +10,17 @@
   import { segmentBuffer, triangulateCountries } from '../lib/webgl/geometry.js';
   import { PROJECTIONS, isGlobeKey, gpuParamsFor } from '../lib/projections.js';
   import { loadGridData } from '../lib/loadGridData.js';
-  import { SpatialGrid } from '../lib/spatialGrid.js';
+  import { SpatialGrid, AreaIndex } from '../lib/spatialGrid.js';
   import { reactors, reactorBuffers } from '../lib/reactors.js';
-  import { pick, tooltipContent } from '../lib/picking.js';
+  import { pick, pickArea, tooltipContent } from '../lib/picking.js';
   import {
     GRID_DATA_URLS,
     WORLD_ATLAS_URL,
+    AREA_DEFS,
     reactorColor,
     hexToVec4,
   } from '../lib/config.js';
-  import { projectionKey, layers, tooltip, showStatus } from '../lib/stores.js';
+  import { projectionKey, layers, theme, tooltip, showStatus } from '../lib/stores.js';
 
   let canvas;
   let glowEl;
@@ -52,6 +53,7 @@
     let disposed = false;
     let hasReactors = false;
     const grid = new SpatialGrid();
+    const areaIndex = new AreaIndex();
     const rad = Math.PI / 180;
 
     const isGlobe = () => isGlobeKey(projKey);
@@ -91,6 +93,13 @@
         currentLayers = l;
         dirty = true;
       }),
+      // The renderer reads RENDER_COLORS / AREA_COLORS per frame, so those
+      // follow the theme on their own — but reactor colours are baked into GPU
+      // buffers at load time and have to be rebuilt.
+      theme.subscribe(() => {
+        if (hasReactors) renderer.setReactors(reactorBuffers());
+        dirty = true;
+      }),
     ];
 
     // --- interaction -------------------------------------------------------
@@ -115,7 +124,11 @@
         const { dx, dy } = applyDrag(e.clientX, e.clientY);
         vel = { x: dx * 0.3, y: -dy * 0.3 };
       }
-      handleHover(e.clientX, e.clientY);
+      // Dragging is tracked on the window so it survives the pointer leaving
+      // the canvas; hovering is not. With the controls panel over the map there
+      // is nothing on the map being pointed at, so drop the hover instead.
+      if (e.target === canvas) handleHover(e.clientX, e.clientY);
+      else if (hovered) clearHover();
     };
     const onMouseUp = () => {
       drag = false;
@@ -143,6 +156,12 @@
     window.addEventListener('resize', resize);
 
     // --- hover / tooltip ---------------------------------------------------
+    function clearHover() {
+      hovered = null;
+      tooltip.set(null);
+      dirty = true;
+    }
+
     function handleHover(mx, my) {
       const layersOn = {
         reactor: currentLayers.reactors,
@@ -151,7 +170,11 @@
         railNode: currentLayers.railNodes,
         telecomPoint: currentLayers.telecom,
       };
-      const item = pick(grid, projection, mx, my, layersOn, isGlobe(), [width, height]);
+      for (const d of AREA_DEFS) layersOn[d.kind] = currentLayers[d.layerId];
+      // Point features win over areas — see pickArea().
+      const item =
+        pick(grid, projection, mx, my, layersOn, isGlobe(), [width, height]) ||
+        pickArea(areaIndex, projection, mx, my, layersOn, isGlobe(), [width, height]);
       if (item !== hovered) {
         hovered = item;
         dirty = true;
@@ -243,6 +266,7 @@
       const result = await loadGridData(GRID_DATA_URLS, showStatus);
       if (!result || disposed) return;
       renderer.setGrid(result.gpu);
+      renderer.setAreas(result.areaGpu);
       renderer.setPoints({
         substations: result.substationPositions,
         plants: result.plantPositions,
@@ -252,6 +276,7 @@
       for (const s of result.substations) grid.insert(s);
       for (const p of result.plants) grid.insert(p);
       for (const f of result.pickableFeatures) grid.insert(f);
+      for (const a of result.pickableAreas) areaIndex.insert(a);
       dirty = true;
     }
 
@@ -311,8 +336,8 @@
     pointer-events: none;
     background: radial-gradient(
       circle,
-      rgba(34, 211, 238, 0.04) 0%,
-      rgba(34, 211, 238, 0.01) 40%,
+      var(--glow-inner) 0%,
+      var(--glow-outer) 40%,
       transparent 70%
     );
   }

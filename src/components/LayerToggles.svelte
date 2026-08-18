@@ -1,6 +1,6 @@
 <script>
-  import { layers, toggleLayer } from '../lib/stores.js';
-  import { LAYER_DEFS } from '../lib/config.js';
+  import { layers, toggleLayer, theme } from '../lib/stores.js';
+  import { LAYER_DEFS, hueFor } from '../lib/config.js';
 </script>
 
 <div class="layer-toggles">
@@ -8,24 +8,20 @@
     <button
       class="toggle-btn"
       class:active={$layers[def.id]}
+      aria-pressed={$layers[def.id]}
       onclick={() => toggleLayer(def.id)}
     >
-      <span class="indicator" style="background:{def.color}"></span>{def.label}
+      <span class="indicator" style="background:{hueFor(def.hue, $theme)}"></span
+      >{def.label}
     </button>
   {/each}
 </div>
 
 <style>
   .layer-toggles {
-    position: fixed;
-    top: 52px;
-    right: 28px;
-    z-index: 100;
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    justify-content: flex-end;
-    max-width: 500px;
   }
 
   .toggle-btn {
@@ -45,7 +41,7 @@
   }
 
   .toggle-btn:hover {
-    border-color: #3a4050;
+    border-color: var(--border-hover);
     color: var(--text);
   }
 

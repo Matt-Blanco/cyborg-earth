@@ -75,12 +75,17 @@ export function segmentBuffer(polylines, maxDeg = 0) {
   return { data: out, vertexCount: total * 2 };
 }
 
-// --- Country fills ---------------------------------------------------------
+// --- Polygon fills ---------------------------------------------------------
 
-// Triangulate GeoJSON (Multi)Polygons with earcut, then recursively split
-// triangles whose edges exceed maxDeg. Small triangles keep the interpolated
-// horizon clip (vClip) and seam unwrap accurate on the globe.
-export function triangulateCountries(features, maxDeg = 4) {
+// Triangulate polygons with earcut, then recursively split triangles whose
+// edges exceed maxDeg. Small triangles keep the interpolated horizon clip
+// (vClip) and seam unwrap accurate on the globe.
+//
+// `polygons` is an array of ring-arrays in GeoJSON Polygon order: ring 0 is the
+// outer boundary, any further rings are holes. Country landmasses and boundary
+// areas (forests, mountain ranges, protected areas) are the same problem, so
+// they share this one implementation.
+export function triangulateRings(polygons, maxDeg = 4) {
   const tris = []; // flat [x0,y0,x1,y1,x2,y2, ...] in degrees
 
   const emit = (ax, ay, bx, by, cx, cy) => {
@@ -122,12 +127,7 @@ export function triangulateCountries(features, maxDeg = 4) {
     }
   };
 
-  for (const f of features) {
-    const g = f.geometry;
-    if (!g) continue;
-    if (g.type === 'Polygon') addPolygon(g.coordinates);
-    else if (g.type === 'MultiPolygon') for (const p of g.coordinates) addPolygon(p);
-  }
+  for (const rings of polygons) addPolygon(rings);
 
   // pack: per-vertex [pos, centroid]
   const triCount = tris.length / 6;
@@ -144,6 +144,49 @@ export function triangulateCountries(features, maxDeg = 4) {
     }
   }
   return { data: out, vertexCount: triCount * 3 };
+}
+
+// Pull every (Multi)Polygon out of a GeoJSON feature list as ring-arrays.
+export function polygonsOf(features) {
+  const polys = [];
+  for (const f of features) {
+    const g = f.geometry;
+    if (!g) continue;
+    if (g.type === 'Polygon') polys.push(g.coordinates);
+    else if (g.type === 'MultiPolygon') for (const p of g.coordinates) polys.push(p);
+  }
+  return polys;
+}
+
+export function triangulateCountries(features, maxDeg = 4) {
+  return triangulateRings(polygonsOf(features), maxDeg);
+}
+
+// --- Polygon outlines ------------------------------------------------------
+
+// The boundary itself: every ring of every polygon as a closed polyline. Holes
+// are outlined too — the inner edge of a ring-shaped protected area is as much
+// a border as its outer edge. Rings that are not explicitly closed in the
+// source get their first point repeated, otherwise the last edge is missing.
+//
+// `openPaths` are boundary ways that never closed — a relation exported
+// piecemeal. They are a real border and belong in the layer's outline, but they
+// are appended as-is rather than closed: joining a fragment's ends would draw
+// an edge the source never claimed.
+export function ringOutlines(polygons, maxDeg = 2, openPaths = []) {
+  const lines = [];
+  for (const rings of polygons) {
+    for (const ring of rings) {
+      if (!ring || ring.length < 2) continue;
+      const a = ring[0];
+      const b = ring[ring.length - 1];
+      lines.push(a[0] === b[0] && a[1] === b[1] ? ring : [...ring, a]);
+    }
+  }
+  for (const path of openPaths) {
+    if (path && path.length >= 2) lines.push(path);
+  }
+  return segmentBuffer(lines, maxDeg);
 }
 
 // --- Domain-fixed geometry (ocean / projection outline) --------------------

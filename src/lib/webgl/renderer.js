@@ -4,7 +4,7 @@
 // with millions of power-line vertices resident.
 import { VERT_SRC, FRAG_SRC } from './shaders.js';
 import { sphereMesh, domainBoundary, rawCircle, rawRing } from './geometry.js';
-import { RENDER_COLORS } from '../config.js';
+import { RENDER_COLORS, AREA_DEFS, AREA_COLORS } from '../config.js';
 
 const GEO = 0, DOMAIN = 1, RAW = 2;
 const FLAT = 0, OCEAN = 1, POINT = 2, GLOW = 3, PULSE = 4;
@@ -80,6 +80,9 @@ export class GlobeRenderer {
       railNodes: null,
       telecomPoints: null,
     };
+    // Boundary areas, category -> { fill, outline }. Populated by setAreas();
+    // a category with no data never gets a key and so never draws.
+    this.areas = {};
     this.reactors = null; // { pos, coreColor, glowColor, size, count, pulsePos, pulseCount }
     this.hoverBuf = this.gl.createBuffer();
   }
@@ -139,9 +142,29 @@ export class GlobeRenderer {
     }
   }
 
+  setAreas(byCategory) {
+    for (const [cat, bufs] of Object.entries(byCategory)) {
+      if (!bufs) continue;
+      const entry = {};
+      if (bufs.fill && bufs.fill.vertexCount) entry.fill = this._geoBuffer(bufs.fill);
+      if (bufs.outline && bufs.outline.vertexCount) {
+        entry.outline = this._geoBuffer(bufs.outline);
+      }
+      if (entry.fill || entry.outline) this.areas[cat] = entry;
+    }
+  }
+
+  // Re-callable: a theme switch rebuilds the colour buffers, so the previous
+  // set is released rather than orphaned on the GPU.
   setReactors({ positions, coreColors, glowColors, sizes, pulsePositions }) {
     if (!positions.length) return;
     const gl = this.gl;
+    if (this.reactors) {
+      const r = this.reactors;
+      for (const b of [r.pos, r.coreColor, r.glowColor, r.size, r.pulsePos]) {
+        if (b) gl.deleteBuffer(b);
+      }
+    }
     const mk = (arr) => {
       const b = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, b);
@@ -259,7 +282,17 @@ export class GlobeRenderer {
       gl.drawArrays(gl.LINES, 0, this.boundary.count);
     }
 
-    // 3. Graticule
+    // 3. Country fills. Under the graticule, not over it: the dark theme paints
+    // land at alpha 0 and does not care, but the light theme's land is opaque
+    // and would otherwise erase every meridian that crosses a continent.
+    if (this.countries) {
+      setMode(GEO, FLAT, seam);
+      this._constColor(RENDER_COLORS.land);
+      this._bindGeo(this.countries);
+      gl.drawArrays(gl.TRIANGLES, 0, this.countries.count);
+    }
+
+    // 4. Graticule
     if (this.graticule) {
       setMode(GEO, FLAT, seam);
       this._constColor(RENDER_COLORS.graticule);
@@ -267,12 +300,23 @@ export class GlobeRenderer {
       gl.drawArrays(gl.LINES, 0, this.graticule.count);
     }
 
-    // 4. Country fills
-    if (this.countries) {
-      setMode(GEO, FLAT, seam);
-      this._constColor(RENDER_COLORS.land);
-      this._bindGeo(this.countries);
-      gl.drawArrays(gl.TRIANGLES, 0, this.countries.count);
+    // 4b. Boundary areas. Every fill draws before any outline, so a large
+    // region laid over a small one cannot bury the smaller one's border — the
+    // border is what identifies the layer, and the fill is only a tint.
+    setMode(GEO, FLAT, seam);
+    for (const d of AREA_DEFS) {
+      const a = this.areas[d.category];
+      if (!a || !a.fill || !s.layers[d.layerId]) continue;
+      this._constColor(AREA_COLORS[d.category].fill);
+      this._bindGeo(a.fill);
+      gl.drawArrays(gl.TRIANGLES, 0, a.fill.count);
+    }
+    for (const d of AREA_DEFS) {
+      const a = this.areas[d.category];
+      if (!a || !a.outline || !s.layers[d.layerId]) continue;
+      this._constColor(AREA_COLORS[d.category].outline);
+      this._bindGeo(a.outline);
+      gl.drawArrays(gl.LINES, 0, a.outline.count);
     }
 
     // 5. Infrastructure lines — rail and telecom underneath, power on top.

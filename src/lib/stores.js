@@ -1,8 +1,41 @@
 import { writable } from 'svelte/store';
-import { INITIAL_LAYERS } from './config.js';
+import { INITIAL_LAYERS, THEMES, DEFAULT_THEME, applyTheme } from './config.js';
 
 // Active map projection key (see projections.js).
 export const projectionKey = writable('orthographic');
+
+// Active theme, 'dark' | 'light'. One switch drives both halves of the page:
+// applyTheme() repaints the WebGL colour tables, and the data-theme attribute
+// swaps the CSS custom properties the chrome is built on (see app.css).
+const THEME_KEY = 'cyborg-earth:theme';
+
+function storedTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (THEMES.includes(saved)) return saved;
+  } catch {
+    // private mode / blocked storage — fall through to the preference
+  }
+  return window.matchMedia('(prefers-color-scheme: light)').matches
+    ? 'light'
+    : DEFAULT_THEME;
+}
+
+export const theme = writable(storedTheme());
+
+theme.subscribe((t) => {
+  applyTheme(t);
+  document.documentElement.dataset.theme = t;
+  try {
+    localStorage.setItem(THEME_KEY, t);
+  } catch {
+    // nothing to do — the theme still applies for this session
+  }
+});
+
+export function setTheme(t) {
+  theme.set(t);
+}
 
 // Which infrastructure layers are visible.
 export const layers = writable({ ...INITIAL_LAYERS });

@@ -54,8 +54,14 @@
     padding-right: 28px;
   }
 
+  /* The arrow is baked into a data URI, so the light theme restates it in its
+     own ink rather than trying to push a variable through the URL. */
+  :global(:root[data-theme='light']) .proj-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235b6675'/%3E%3C/svg%3E");
+  }
+
   .proj-select:hover {
-    border-color: #3a4050;
+    border-color: var(--border-hover);
   }
 
   .proj-select:focus {
