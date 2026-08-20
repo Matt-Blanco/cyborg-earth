@@ -60,7 +60,3 @@ export function showStatus(message, loading) {
     }, 5000);
   }
 }
-
-// Tooltip contents; null when hidden.
-// { x, y, name, subtitle, rows: [{ label, value, color? }] }
-export const tooltip = writable(null);

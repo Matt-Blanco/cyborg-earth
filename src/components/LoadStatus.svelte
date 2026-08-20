@@ -13,7 +13,7 @@
     top: 64px;
     right: 28px;
     z-index: 100;
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 9px;
     color: var(--text-dim);
     letter-spacing: 0.5px;

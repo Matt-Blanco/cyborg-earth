@@ -29,7 +29,7 @@
   }
 
   .proj-select-wrap label {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 9px;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -37,7 +37,7 @@
   }
 
   .proj-select {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 11px;
     padding: 7px 12px;
     border-radius: 6px;

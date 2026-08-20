@@ -13,33 +13,52 @@
 //                       ranges, protected areas, national parks, admin borders)
 //                       straight from Overpass or Natural Earth — see
 //                       AREA_TYPES for the tags that reach the area layer.
+//
+// Entries are bare paths; where they are read from is decided per environment
+// by resolveSource() in loadGridData.js — `vite dev` serves them from
+// public/data/ on disk, a production build rewrites them onto
+// GRID_DATA_BUCKET_URL. At ~440 MB for the set they are too big to ship with
+// the site, and too big to re-fetch from the bucket on every dev reload. An
+// absolute https:// URL here is honoured verbatim in both environments.
+//
+// public/data/world-telecom-cable.geojson is deliberately absent: it is the
+// same submarine cable dataset as sea-telecom-cables.json (same feature ids) in
+// GeoJSON form, so loading both would draw every cable twice.
 export const GRID_DATA_URLS = [
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/africa-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/asia-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/australia-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/europe-power-compact.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-rail-telecom.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-rail-telecom.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/europe-rail-telecom.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/asia-rail-telecom.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/africa-rail-telecom.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-rail-telecom.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/australia-protected-area.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/sea-telecom-cables.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/australia-national-park.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-protected-area.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-protected-area.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-protected-area.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-national-parks.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-national-parks.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-national-parks.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/europe-national-parks.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/africa-national-parks.json",
-    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/asia-national-parks.json",
+  "data/africa-power-compact.json",
+  "data/asia-power-compact.json",
+  "data/australia-power-compact.json",
+  "data/north-america-power-compact.json",
+  "data/central-america-power-compact.json",
+  "data/south-america-power-compact.json",
+  "data/europe-power-compact.json",
+  "data/north-america-rail-telecom.json",
+  "data/south-america-rail-telecom.json",
+  "data/europe-rail-telecom.json",
+  "data/asia-rail-telecom.json",
+  "data/africa-rail-telecom.json",
+  "data/central-america-rail-telecom.json",
+  "data/australia-rail-telecom.json",
+  "data/australia-protected-area.json",
+  "data/sea-telecom-cables.json",
+  "data/australia-national-park.json",
+  "data/north-america-protected-area.json",
+  "data/south-america-protected-area.json",
+  "data/central-america-protected-area.json",
+  "data/north-america-national-parks.json",
+  "data/south-america-national-parks.json",
+  "data/central-america-national-parks.json",
+  "data/europe-national-parks.json",
+  "data/africa-national-parks.json",
+  "data/asia-national-parks.json",
 ];
+
+// Where a production build reads the extracts from. The bucket is flat, so an
+// entry above contributes only its filename. Set to "" to have builds serve the
+// files alongside the site instead (which also means restoring the publicDir
+// copy in vite.config.js).
+export const GRID_DATA_BUCKET_URL =
+  "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/";
 
 export const WORLD_ATLAS_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -141,7 +160,7 @@ export function hueFor(key, theme = activeTheme) {
 // Areas are the third mark class, after lines and points: a filled region plus
 // the outline that bounds it. Unlike lines and points — whose category, layer
 // id and kind are declared separately across six files — an area layer is one
-// row here, read by the loader, renderer, legend and tooltip alike. This is the
+// row here, read by the loader, renderer and legend alike. This is the
 // registry docs/adding-feature-types.md recommends adopting "if this list
 // starts to hurt".
 //
@@ -149,16 +168,17 @@ export function hueFor(key, theme = activeTheme) {
 // boundaries are all one drawn layer. On a globe with no zoom they answer the
 // same question — "someone has drawn a line around this land" — and five hues
 // spent on that distinction cost the palette more than they returned. The
-// sub-type survives where it is actually legible: AREA_TYPES maps tags to a
-// tooltip subtitle, so hovering a park still says "National Park" rather than
-// "Natural Area".
+// sub-type survives on the picked record: AREA_TYPES maps tags to a subtitle,
+// so a hovered park is still identified as a "National Park" rather than a
+// "Natural Area" — nothing displays it since the hover tooltip was removed, but
+// it is what any future readout of a picked area would name it by.
 //
 // Fields (AREA_DEFS — the visual layer):
 //   category  GPU buffer key (fill + outline pair)
 //   layerId   toggle id — must be unique against LAYER_DEFS below
-//   kind      picking/tooltip id
+//   kind      picking id
 //   hue       HUES key; fill and outline are that hue at two alphas
-//   subtitle  tooltip fallback when no AREA_TYPES row matched
+//   subtitle  picked-record fallback when no AREA_TYPES row matched
 //
 // Colour: collapsing to one area hue drops the constraint that used to bind the
 // four — they no longer have to separate from each other, only from the
@@ -182,8 +202,8 @@ export const AREA_DEFS = [
 // Tag families that land on the Natural Area layer, specific rows first —
 // areaDefFor() takes the first match, so a national park tagged both
 // `boundary=national_park` and `boundary=administrative` reports as the park.
-// `subtitle` is the whole difference between these rows: it is the tooltip's
-// second line, and the fallback heading for an area whose tags carry no name.
+// `subtitle` is the whole difference between these rows: it is what a picked
+// area reports as its type, and the fallback name for one whose tags carry none.
 export const AREA_TYPES = [
   {
     subtitle: "National Park",
@@ -327,7 +347,7 @@ const REACTOR_GLOW_ALPHAS = {
   "Suspended Operation": 0.4,
 };
 
-// Live tables (dot + tooltip accent, and the halo behind the dot), rewritten by
+// Live tables (dot colour and the halo behind it), rewritten by
 // applyTheme(). Reactor GPU colour buffers are baked from these at load time,
 // so Globe.svelte re-uploads them when the theme changes.
 export const REACTOR_COLORS = {};
@@ -401,6 +421,10 @@ const RENDER_ALPHAS = {
 const BACKDROPS = {
   dark: {
     graticule: [1, 1, 1, 0.02],
+    // Country fills are painted but never seen: alpha 0 leaves the ocean shading
+    // showing through, so a landmass is the same colour as the water around it
+    // and the map reads as one globe. Coastlines and borders are drawn by the
+    // data layers that sit on them, not by a fill. See `land` under `light`.
     land: hexToVec4("#0d1117", 0),
     oceanFlat: hexToVec4("#0d1117", 1),
     oceanInner: hexToVec4("#131922", 1),
@@ -410,12 +434,13 @@ const BACKDROPS = {
   },
   light: {
     graticule: hexToVec4("#334155", 0.1),
-    // The dark theme leaves land unpainted (alpha 0) — ocean and land are both
-    // near-black there and the coastline is drawn by whatever sits on it. On a
-    // light map the two have to separate, so land takes an opaque near-white
-    // over the ocean's blue. Opaque, not a tint: country fills are triangulated
-    // per polygon, and any alpha below 1 shows the seams where they meet.
-    land: hexToVec4("#f7f9fb", 1),
+    // Unpainted here too, for the same reason as the dark theme: land is meant
+    // to disappear into the globe rather than separate from it. This was once
+    // an opaque near-white over the ocean's blue — the only alpha that works if
+    // land is to be painted at all, since country fills are triangulated per
+    // polygon and any value below 1 shows the seams where they meet. Alpha 0
+    // sidesteps that entirely: nothing is drawn, so there are no seams.
+    land: hexToVec4("#f7f9fb", 0),
     oceanFlat: hexToVec4("#dbe6f2", 1),
     oceanInner: hexToVec4("#e3ecf6", 1),
     oceanOuter: hexToVec4("#c6d7e8", 1),

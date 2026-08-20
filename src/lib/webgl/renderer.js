@@ -7,7 +7,7 @@ import { sphereMesh, domainBoundary, rawCircle, rawRing } from './geometry.js';
 import { RENDER_COLORS, AREA_DEFS, AREA_COLORS } from '../config.js';
 
 const GEO = 0, DOMAIN = 1, RAW = 2;
-const FLAT = 0, OCEAN = 1, POINT = 2, GLOW = 3, PULSE = 4;
+const FLAT = 0, OCEAN = 1, POINT = 2, GLOW = 3;
 
 function compile(gl, type, src) {
   const s = gl.createShader(type);
@@ -50,7 +50,7 @@ export class GlobeRenderer {
     for (const name of [
       'uRotate', 'uProj', 'uGeoMode', 'uScale', 'uOffset', 'uViewport', 'uConic',
       'uClipCos', 'uDpr', 'uSizeBase', 'uSizeScale', 'uFragMode', 'uSeamFrag',
-      'uGradCenter', 'uGradRadius', 'uGradOuter', 'uTime',
+      'uGradCenter', 'uGradRadius', 'uGradOuter',
     ]) {
       this.uni[name] = gl.getUniformLocation(prog, name);
     }
@@ -83,7 +83,7 @@ export class GlobeRenderer {
     // Boundary areas, category -> { fill, outline }. Populated by setAreas();
     // a category with no data never gets a key and so never draws.
     this.areas = {};
-    this.reactors = null; // { pos, coreColor, glowColor, size, count, pulsePos, pulseCount }
+    this.reactors = null; // { pos, coreColor, glowColor, size, count }
     this.hoverBuf = this.gl.createBuffer();
   }
 
@@ -156,12 +156,12 @@ export class GlobeRenderer {
 
   // Re-callable: a theme switch rebuilds the colour buffers, so the previous
   // set is released rather than orphaned on the GPU.
-  setReactors({ positions, coreColors, glowColors, sizes, pulsePositions }) {
+  setReactors({ positions, coreColors, glowColors, sizes }) {
     if (!positions.length) return;
     const gl = this.gl;
     if (this.reactors) {
       const r = this.reactors;
-      for (const b of [r.pos, r.coreColor, r.glowColor, r.size, r.pulsePos]) {
+      for (const b of [r.pos, r.coreColor, r.glowColor, r.size]) {
         if (b) gl.deleteBuffer(b);
       }
     }
@@ -177,8 +177,6 @@ export class GlobeRenderer {
       glowColor: mk(glowColors),
       size: mk(sizes),
       count: positions.length / 2,
-      pulsePos: pulsePositions.length ? mk(pulsePositions) : null,
-      pulseCount: pulsePositions.length / 2,
     };
   }
 
@@ -225,7 +223,7 @@ export class GlobeRenderer {
 
   render(s) {
     // s: { gpu: {gpuId, clipCos, conic, hasSeam}, rotateMat3, scale, offset,
-    //      viewport (css), dpr, layers, isGlobe, time, gradient, hover }
+    //      viewport (css), dpr, layers, isGlobe, gradient, hover }
     const gl = this.gl;
     const u = this.uni;
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -240,7 +238,6 @@ export class GlobeRenderer {
     gl.uniform3f(u.uConic, s.gpu.conic[0], s.gpu.conic[1], s.gpu.conic[2]);
     gl.uniform1f(u.uClipCos, s.gpu.clipCos);
     gl.uniform1f(u.uDpr, s.dpr);
-    gl.uniform1f(u.uTime, s.time);
     const seam = s.gpu.hasSeam ? 1 : 0;
 
     const setMode = (geoMode, fragMode, seamFrag) => {
@@ -282,9 +279,10 @@ export class GlobeRenderer {
       gl.drawArrays(gl.LINES, 0, this.boundary.count);
     }
 
-    // 3. Country fills. Under the graticule, not over it: the dark theme paints
-    // land at alpha 0 and does not care, but the light theme's land is opaque
-    // and would otherwise erase every meridian that crosses a continent.
+    // 3. Country fills. Both themes currently paint land at alpha 0 — it is the
+    // ocean shading that shows through, so land and water share a colour — but
+    // the pass still runs under the graticule rather than over it, so that
+    // restoring an opaque land colour cannot erase the meridians crossing it.
     if (this.countries) {
       setMode(GEO, FLAT, seam);
       this._constColor(RENDER_COLORS.land);
@@ -352,7 +350,7 @@ export class GlobeRenderer {
     }
     if (s.layers.plants) pointDraw(this.points.plants, RENDER_COLORS.plants, 4);
 
-    // 7. Reactors: glow halo, pulse rings, cores
+    // 7. Reactors: glow halo, then cores
     if (s.layers.reactors && this.reactors) {
       const r = this.reactors;
       const bindSizes = () => {
@@ -365,15 +363,6 @@ export class GlobeRenderer {
       this._bindPoints(r.pos, r.glowColor);
       bindSizes();
       gl.drawArrays(gl.POINTS, 0, r.count);
-
-      if (r.pulsePos) {
-        setMode(GEO, PULSE, 0);
-        setSize(19, 0);
-        this._bindPoints(r.pulsePos, null);
-        this._constColor([16 / 255, 185 / 255, 129 / 255, 1]);
-        this._constSize(0);
-        gl.drawArrays(gl.POINTS, 0, r.pulseCount);
-      }
 
       setMode(GEO, POINT, 0);
       setSize(0, 1);

@@ -12,7 +12,7 @@
   import { loadGridData } from '../lib/loadGridData.js';
   import { SpatialGrid, AreaIndex } from '../lib/spatialGrid.js';
   import { reactors, reactorBuffers } from '../lib/reactors.js';
-  import { pick, pickArea, tooltipContent } from '../lib/picking.js';
+  import { pick, pickArea } from '../lib/picking.js';
   import {
     GRID_DATA_URLS,
     WORLD_ATLAS_URL,
@@ -20,7 +20,7 @@
     reactorColor,
     hexToVec4,
   } from '../lib/config.js';
-  import { projectionKey, layers, theme, tooltip, showStatus } from '../lib/stores.js';
+  import { projectionKey, layers, theme, showStatus } from '../lib/stores.js';
 
   let canvas;
   let glowEl;
@@ -155,10 +155,9 @@
     canvas.addEventListener('touchend', onTouchEnd);
     window.addEventListener('resize', resize);
 
-    // --- hover / tooltip ---------------------------------------------------
+    // --- hover --------------------------------------------------------------
     function clearHover() {
       hovered = null;
-      tooltip.set(null);
       dirty = true;
     }
 
@@ -179,15 +178,6 @@
         hovered = item;
         dirty = true;
       }
-      if (item) {
-        let tx = mx + 16;
-        let ty = my - 10;
-        if (tx + 280 > width) tx = mx - 290;
-        if (ty + 160 > height) ty = my - 160;
-        tooltip.set({ x: tx, y: ty, ...tooltipContent(item, reactorColor) });
-      } else {
-        tooltip.set(null);
-      }
     }
 
     // --- render loop ---------------------------------------------------------
@@ -206,8 +196,10 @@
       }
       rotX = Math.max(-80, Math.min(80, rotX));
 
-      const animating = currentLayers.reactors && hasReactors;
-      if (!dirty && !animating) return;
+      // Nothing on the map animates on its own any more, so a frame is drawn
+      // only when something changed it — a drag, the inertia above, a hover, a
+      // layer toggle, or new data.
+      if (!dirty) return;
       dirty = false;
 
       projection.rotate([-rotY, -rotX, 0]);
@@ -237,7 +229,6 @@
         dpr,
         layers: currentLayers,
         isGlobe: isGlobe(),
-        time: (performance.now() / 1000) * 1.8,
         gradient: {
           center: [
             (width / 2 - radius * 0.3) * dpr,

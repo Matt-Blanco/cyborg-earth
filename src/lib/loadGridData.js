@@ -8,7 +8,13 @@
 // Vertex layout (matches renderer's int16 geo buffers, normalized):
 //   [lonQ, latQ, midLonQ, midLatQ] — mid* is the segment midpoint used for
 //   antimeridian unwrapping in the vertex shader.
-import { HV_THRESHOLD, PICKABLE_RAIL_NODES, AREA_CATEGORIES, areaDefFor } from './config.js';
+import {
+  HV_THRESHOLD,
+  PICKABLE_RAIL_NODES,
+  AREA_CATEGORIES,
+  areaDefFor,
+  GRID_DATA_BUCKET_URL,
+} from './config.js';
 import { triangulateRings, ringOutlines } from './webgl/geometry.js';
 
 const QX = 32767 / 180;
@@ -225,22 +231,7 @@ function ingestFile(raw, acc) {
 
   // Boundary extracts deliver their polygons in `lines`, not `areas`: an
   // Overpass query for boundary=protected_area exports each boundary *way*, and
-  // a closed way is a ring even though the schema filed it under lines. Without
-  // this partition those files load, match no line category, and land in
-  // `skippedLines` — 4,396 protected areas fetched and nothing drawn.
-  //
-  // A line category always wins: a railway crossing a national park is a
-  // railway, so only ways no line category claims are offered to the area
-  // matcher. A matched way that encloses nothing — an open fragment of a
-  // relation exported piecemeal, or a ring flattened by coordinate rounding —
-  // still gets the layer's outline, but no fill and no hover: there is no
-  // interior to tint or hit-test.
-  // The classification pass is also the counting pass, and its verdict is kept
-  // in a parallel array rather than re-derived: the write pass below needs a
-  // sized buffer per category before it can start, and `categoryOf` +
-  // `areaDefFor` over a million-way extract is not worth running twice. Bare
-  // interned strings, not objects — europe-rail-telecom.json alone is 166 MB of
-  // lines, so one pointer per way is the difference that matters.
+  // a closed way is a ring even though the schema filed it under lines.
   const cats = new Array(lines.length);
   const segCounts = {};
   for (const cat of LINE_CATEGORIES) segCounts[cat] = 0;
@@ -400,43 +391,39 @@ function coordPositions(coords) {
   return out;
 }
 
-// Config entries arrive in two shapes and both have to work in the same list: a
-// path relative to the deployed page ("data/europe-power-compact.json", served
-// out of public/) or an absolute URL to a hosted copy of the same extract
-// ("https://….r2.dev/cyborg-earth/….json"). The extracts are big enough —
-// europe-rail-telecom.json alone is 166 MB — that a deployment usually serves
-// them from a bucket rather than shipping them with the site, while local
-// development still reads the files on disk.
-//
-// fetch() would take either string as-is, so what this resolves is the rest of
-// it: a relative entry has to resolve against the app's base (vite's `base` is
-// './', so a build served from a subpath must not resolve against the origin),
-// and every message the loader prints wants a short name — a bucket URL spends
-// 90 characters on the host before reaching the part that names the file.
 const ABSOLUTE_URL = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+
+const USE_BUCKET = import.meta.env?.DEV === false && !!GRID_DATA_BUCKET_URL;
+
+function localUrl(raw) {
+  const base = new URL(import.meta.env?.BASE_URL || './', document.baseURI);
+  return new URL(raw, base).href;
+}
+
+function bucketUrl(file) {
+  const base = GRID_DATA_BUCKET_URL.endsWith('/')
+    ? GRID_DATA_BUCKET_URL
+    : `${GRID_DATA_BUCKET_URL}/`;
+  return new URL(file, base).href;
+}
 
 function resolveSource(entry) {
   const raw = String(entry == null ? '' : entry).trim();
   if (!raw) return null; // blank slot left behind by a commented-out edit
-  // A leading '/' is already anchored to the origin; only a truly relative path
-  // needs the base applied.
-  const url =
-    ABSOLUTE_URL.test(raw) || raw[0] === '/'
-      ? raw
-      : new URL(raw, new URL(import.meta.env?.BASE_URL || './', document.baseURI)).href;
-  const path = url.split(/[?#]/)[0];
+  const managed = !ABSOLUTE_URL.test(raw) && raw[0] !== '/';
+  // Name the file, not the host: "africa-power-compact.json" either way.
+  const path = raw.split(/[?#]/)[0];
+  const label = path.slice(path.lastIndexOf('/') + 1) || raw;
+
+  const url = !managed ? raw : USE_BUCKET ? bucketUrl(label) : localUrl(raw);
+
   let crossOrigin = false;
   try {
     crossOrigin = new URL(url, document.baseURI).origin !== location.origin;
   } catch {
     // An unparseable entry is left for fetch to reject and report by name.
   }
-  return {
-    url,
-    // Name the file, not the host: "africa-power-compact.json" either way.
-    label: path.slice(path.lastIndexOf('/') + 1) || raw,
-    crossOrigin,
-  };
+  return { url, label, crossOrigin };
 }
 
 // Fetch + ingest all configured files. `urls` may mix relative paths and

@@ -43,7 +43,6 @@ uniform int   uFragMode;    // shared with fragment stage; >=2 means point sprit
 out float vClip;    // >0 -> inside angular clip
 out float vLambda;  // unwrapped rotated longitude (seam discard)
 out vec4  vColor;
-out float vPhase;   // reactor pulse phase
 
 const float PI = 3.141592653589793;
 const float TWO_PI = 6.283185307179586;
@@ -120,7 +119,6 @@ vec2 rawProject(vec3 q, float lam, float phi) {
 
 void main() {
   vColor = aColor;
-  vPhase = (aPos.x * 180.0 + aPos.y * 90.0) * 0.1;
   gl_PointSize = (uSizeBase + aSize * uSizeScale) * uDpr;
 
   vec2 raw;
@@ -166,17 +164,12 @@ precision highp int;
 in float vClip;
 in float vLambda;
 in vec4  vColor;
-in float vPhase;
 
-uniform int   uFragMode;    // 0 flat, 1 ocean gradient, 2 point, 3 glow, 4 pulse ring
+uniform int   uFragMode;    // 0 flat, 1 ocean gradient, 2 point, 3 glow
 uniform int   uSeamFrag;    // 1 -> discard fragments outside lon domain
 uniform vec2  uGradCenter;  // device px, y-up (gl_FragCoord space)
 uniform float uGradRadius;
 uniform vec4  uGradOuter;
-uniform float uTime;
-uniform float uDpr;
-uniform float uSizeBase;
-uniform float uSizeScale;
 
 out vec4 fragColor;
 
@@ -205,22 +198,9 @@ void main() {
     fragColor = vec4(vColor.rgb, vColor.a * a);
     return;
   }
-  if (uFragMode == 3) {                       // soft glow
-    float a = 1.0 - smoothstep(0.0, 1.0, r);
-    if (a <= 0.0) discard;
-    fragColor = vec4(vColor.rgb, vColor.a * a * a);
-    return;
-  }
-  // pulse ring (operational reactors): expanding/fading circle outline,
-  // phase-offset per point — mirrors the original canvas animation.
-  float s = sin(uTime + vPhase);
-  float alpha = 0.15 - s * 0.1;
-  if (alpha <= 0.0) discard;
-  float pointRadiusPx = (uSizeBase + uSizeScale) * uDpr * 0.5;
-  float ringPx = (2.6 + 3.0 + s * 3.0) * uDpr;    // css px -> device px
-  float distPx = r * pointRadiusPx;
-  float band = 1.0 - smoothstep(0.0, 1.2 * uDpr, abs(distPx - ringPx));
-  if (band <= 0.0) discard;
-  fragColor = vec4(vColor.rgb, alpha * band);
+  // soft glow (uFragMode 3)
+  float a = 1.0 - smoothstep(0.0, 1.0, r);
+  if (a <= 0.0) discard;
+  fragColor = vec4(vColor.rgb, vColor.a * a * a);
 }
 `;

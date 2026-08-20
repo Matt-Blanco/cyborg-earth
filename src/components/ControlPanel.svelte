@@ -105,7 +105,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 10px;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -166,7 +166,7 @@
   }
 
   h2 {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 2.5px;
@@ -196,7 +196,7 @@
   }
 
   .section-title {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 8px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
@@ -213,7 +213,7 @@
   }
 
   .segment {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 10px;
     letter-spacing: 0.5px;
     padding: 6px 18px;

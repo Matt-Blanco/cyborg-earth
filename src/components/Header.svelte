@@ -25,7 +25,7 @@
   }
 
   .title-block h1 {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 3px;
@@ -35,7 +35,7 @@
   }
 
   .title-block p {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 11px;
     color: var(--text-dim);
     letter-spacing: 0.5px;

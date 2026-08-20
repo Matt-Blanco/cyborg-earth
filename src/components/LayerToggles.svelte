@@ -25,7 +25,7 @@
   }
 
   .toggle-btn {
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 10px;
     letter-spacing: 0.5px;
     padding: 7px 14px;

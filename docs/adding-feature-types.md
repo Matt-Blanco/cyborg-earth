@@ -34,6 +34,9 @@ Three file shapes reach `loadGridData.js`:
 - **plain GeoJSON** — a `FeatureCollection`. `normalizeGeoJSON()` rewrites it into
   the tagged shape on load (`properties` becomes `t`), splitting Multi* geometries
   into one entry each. Drop a boundary `.geojson` straight into `GRID_DATA_URLS`.
+  An entry there is a bare filename under `data/`, so the file has to exist in
+  both places it is read from: `public/data/` for `vite dev`, and the R2 bucket
+  (`GRID_DATA_BUCKET_URL`) for a production build.
 
 Lines and areas are discriminated by `typeof t`: an object means tags, a string
 means the power extract's type field.

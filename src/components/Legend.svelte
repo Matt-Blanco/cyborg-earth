@@ -23,7 +23,7 @@
       {#if def.mark === 'dot'}
         <div
           class="legend-dot"
-          style="background:{hex}; box-shadow: 0 0 6px {hexToCss(hex, 0.5)}"
+          style="background:{hex};"
         ></div>
       {:else if def.mark === 'line'}
         <div class="legend-line" style="background:{lineSwatch(hex)}"></div>
@@ -51,7 +51,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Inter', monospace;
     font-size: 10px;
     color: var(--text-dim);
   }

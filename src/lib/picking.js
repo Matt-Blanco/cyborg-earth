@@ -58,37 +58,3 @@ export function pickArea(index, projection, mx, my, layersOn, isGlobe, viewport)
   }
   return index.hit(geo[0], geo[1], (a) => layersOn[a.kind] === true);
 }
-
-// Tooltip rows for a picked item — mirrors the original tooltip markup.
-export function tooltipContent(item, reactorColorFn) {
-  // Boundary areas carry their own name and subtitle from AREA_DEFS.
-  if (item.isArea) {
-    return { name: item.name, subtitle: item.subtitle, rows: [] };
-  }
-  if (item.kind === 'reactor') {
-    const rows = [{ label: 'Status', value: item.status, color: reactorColorFn(item.status) }];
-    if (item.type) rows.push({ label: 'Type', value: item.type });
-    if (item.model) rows.push({ label: 'Model', value: item.model });
-    if (item.capacity) rows.push({ label: 'Capacity', value: `${item.capacity} MWe` });
-    return { name: item.name, subtitle: item.country, rows };
-  }
-  if (item.kind === 'substation') {
-    return {
-      name: item.name,
-      subtitle: 'Substation',
-      rows: item.voltage ? [{ label: 'Voltage', value: item.voltage }] : [],
-    };
-  }
-  // Tagged features have no name of their own — the humanised tag value is the
-  // heading, and the subtitle names the network it belongs to.
-  if (item.kind === 'railNode') {
-    return { name: item.name, subtitle: 'Railway', rows: [] };
-  }
-  if (item.kind === 'telecomPoint') {
-    return { name: item.name, subtitle: 'Telecom', rows: [] };
-  }
-  const rows = [];
-  if (item.source) rows.push({ label: 'Source', value: item.source });
-  if (item.mw) rows.push({ label: 'Output', value: item.mw });
-  return { name: item.name, subtitle: 'Power Plant', rows };
-}

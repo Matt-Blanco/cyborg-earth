@@ -25,15 +25,13 @@ export const reactors = REACTORS_RAW.map((d) => ({
   kind: 'reactor',
 }));
 
-// GPU buffers: positions, per-status core/glow colors, core diameters, and a
-// separate position list for the animated pulse (operational reactors only).
+// GPU buffers: positions, per-status core/glow colors and core diameters.
 export function reactorBuffers() {
   const n = reactors.length;
   const positions = new Float32Array(n * 2);
   const coreColors = new Uint8Array(n * 4);
   const glowColors = new Uint8Array(n * 4);
   const sizes = new Float32Array(n);
-  const pulse = [];
   for (let i = 0; i < n; i++) {
     const r = reactors[i];
     positions[i * 2] = r.lon / 180;
@@ -46,15 +44,8 @@ export function reactorBuffers() {
     }
     coreColors[i * 4 + 3] = 255;
     glowColors[i * 4 + 3] = Math.round(glow[3] * 255);
-    const operational = r.status === 'Operational';
-    sizes[i] = (operational ? 2.6 : 2) * 2; // core diameter in css px
-    if (operational) pulse.push(r.lon / 180, r.lat / 90);
+    // Operational reactors read a little larger than the rest.
+    sizes[i] = (r.status === 'Operational' ? 2.6 : 2) * 2; // core diameter in css px
   }
-  return {
-    positions,
-    coreColors,
-    glowColors,
-    sizes,
-    pulsePositions: new Float32Array(pulse),
-  };
+  return { positions, coreColors, glowColors, sizes };
 }
