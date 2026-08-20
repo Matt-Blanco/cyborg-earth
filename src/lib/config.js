@@ -1,10 +1,5 @@
 // ============================================================================
 // CONFIGURATION — Edit GRID_DATA_URLS to point at your compact_power.py outputs.
-//
-// Each entry is a URL (relative to the site root) to a JSON file produced by
-// compact_power.py. Files live in public/data/ and are loaded in parallel on
-// page load. If the array is empty, only the embedded reactor data displays.
-//
 // Three file shapes are supported (see loadGridData.js):
 //   * power extracts  — lines carry `v` (voltage) / `t: "cable"`, plus
 //                       `substations` and `plants` arrays.
@@ -18,37 +13,32 @@
 //                       ranges, protected areas, national parks, admin borders)
 //                       straight from Overpass or Natural Earth — see
 //                       AREA_TYPES for the tags that reach the area layer.
-//
-// Boundary extracts often deliver their polygons as closed *ways* in `lines`
-// rather than in `areas`; the loader promotes those, so an Overpass export of
-// `boundary=protected_area` works without reshaping it first.
-// ============================================================================
 export const GRID_DATA_URLS = [
-  "data/africa-power-compact.json",
-  "data/asia-power-compact.json",
-  "data/australia-power-compact.json",
-  "data/north-america-power-compact.json",
-  "data/central-america-power-compact.json",
-  "data/south-america-power-compact.json",
-  "data/europe-power-compact.json",
-  "data/north-america-rail-telecom.json",
-  "data/south-america-rail-telecom.json",
-  "data/europe-rail-telecom.json",
-  "data/asia-rail-telecom.json",
-  "data/africa-rail-telecom.json",
-  "data/central-america-rail-telecom.json",
-  "data/australia-protected-area.json",
-  "data/sea-telecom-cables.json",
-  "data/australia-national-park.json",
-  "data/north-america-protected-area.json",
-  "data/south-america-protected-area.json",
-  "data/central-america-protected-area.json",
-  "data/north-america-national-parks.json",
-  "data/south-america-national-parks.json",
-  "data/central-america-national-parks.json",
-  "data/europe-national-parks.json",
-  "data/africa-national-parks.json",
-  "data/asia-national-parks.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/africa-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/asia-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/australia-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/europe-power-compact.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-rail-telecom.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-rail-telecom.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/europe-rail-telecom.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/asia-rail-telecom.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/africa-rail-telecom.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-rail-telecom.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/australia-protected-area.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/sea-telecom-cables.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/australia-national-park.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-protected-area.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-protected-area.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-protected-area.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/north-america-national-parks.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/south-america-national-parks.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/central-america-national-parks.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/europe-national-parks.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/africa-national-parks.json",
+    "https://pub-b2fdae8a32ba430298f257d3e7c2a231.r2.dev/cyborg-earth/asia-national-parks.json",
 ];
 
 export const WORLD_ATLAS_URL =

@@ -400,14 +400,56 @@ function coordPositions(coords) {
   return out;
 }
 
-// Fetch + ingest all configured files. onStatus(message, loading) mirrors the
-// original page's load banner. Returns GPU buffers plus pickable point lists.
+// Config entries arrive in two shapes and both have to work in the same list: a
+// path relative to the deployed page ("data/europe-power-compact.json", served
+// out of public/) or an absolute URL to a hosted copy of the same extract
+// ("https://….r2.dev/cyborg-earth/….json"). The extracts are big enough —
+// europe-rail-telecom.json alone is 166 MB — that a deployment usually serves
+// them from a bucket rather than shipping them with the site, while local
+// development still reads the files on disk.
+//
+// fetch() would take either string as-is, so what this resolves is the rest of
+// it: a relative entry has to resolve against the app's base (vite's `base` is
+// './', so a build served from a subpath must not resolve against the origin),
+// and every message the loader prints wants a short name — a bucket URL spends
+// 90 characters on the host before reaching the part that names the file.
+const ABSOLUTE_URL = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+
+function resolveSource(entry) {
+  const raw = String(entry == null ? '' : entry).trim();
+  if (!raw) return null; // blank slot left behind by a commented-out edit
+  // A leading '/' is already anchored to the origin; only a truly relative path
+  // needs the base applied.
+  const url =
+    ABSOLUTE_URL.test(raw) || raw[0] === '/'
+      ? raw
+      : new URL(raw, new URL(import.meta.env?.BASE_URL || './', document.baseURI)).href;
+  const path = url.split(/[?#]/)[0];
+  let crossOrigin = false;
+  try {
+    crossOrigin = new URL(url, document.baseURI).origin !== location.origin;
+  } catch {
+    // An unparseable entry is left for fetch to reject and report by name.
+  }
+  return {
+    url,
+    // Name the file, not the host: "africa-power-compact.json" either way.
+    label: path.slice(path.lastIndexOf('/') + 1) || raw,
+    crossOrigin,
+  };
+}
+
+// Fetch + ingest all configured files. `urls` may mix relative paths and
+// absolute asset URLs (see resolveSource). onStatus(message, loading) mirrors
+// the original page's load banner. Returns GPU buffers plus pickable point
+// lists.
 export async function loadGridData(urls, onStatus) {
-  if (urls.length === 0) {
+  const sources = (urls || []).map(resolveSource).filter(Boolean);
+  if (sources.length === 0) {
     onStatus('No grid data files configured — edit GRID_DATA_URLS in config.js', false);
     return null;
   }
-  onStatus(`Loading ${urls.length} grid data file(s)...`, true);
+  onStatus(`Loading ${sources.length} grid data file(s)...`, true);
 
   const acc = {
     chunks: {},
@@ -437,11 +479,24 @@ export async function loadGridData(urls, onStatus) {
   }
 
   const results = await Promise.allSettled(
-    urls.map((url) =>
-      fetch(url).then((r) => {
-        if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
-        return r.json();
-      })
+    sources.map((src) =>
+      fetch(src.url, {mode: "cors" }).then(
+        (r) => {
+          if (!r.ok) throw new Error(`${src.label}: HTTP ${r.status}`);
+          return r.json();
+        },
+        // A rejected fetch never reached a response: offline, DNS, or — for the
+        // hosted copies — a bucket that answered without the CORS headers the
+        // browser demands. The TypeError says only "Failed to fetch", so name
+        // the thing worth checking first.
+        (err) => {
+          throw new Error(
+            src.crossOrigin
+              ? `${src.label}: ${err.message} (cross-origin — check the bucket's CORS rules)`
+              : `${src.label}: ${err.message}`
+          );
+        }
+      )
     )
   );
 
@@ -452,7 +507,7 @@ export async function loadGridData(urls, onStatus) {
       ingestFile(r.value, acc);
       loaded++;
     } else {
-      console.error(`Failed to load ${urls[i]}:`, r.reason);
+      console.error(`Failed to load ${sources[i].url}:`, r.reason);
       failed++;
     }
   });
