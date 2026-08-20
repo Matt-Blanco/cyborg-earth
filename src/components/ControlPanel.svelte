@@ -112,11 +112,6 @@
     background: var(--accent-glow);
   }
 
-  .panel-trigger svg {
-    width: 13px;
-    height: 13px;
-  }
-
   .panel-dialog {
     padding: 0;
     border: none;
