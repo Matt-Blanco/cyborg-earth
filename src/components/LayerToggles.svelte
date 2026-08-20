@@ -29,7 +29,7 @@
     font-size: 10px;
     letter-spacing: 0.5px;
     padding: 7px 14px;
-    border-radius: 6px;
+    border-radius: 2px;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text-dim);

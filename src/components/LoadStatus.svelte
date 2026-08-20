@@ -20,7 +20,7 @@
     padding: 6px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 2px;
     opacity: 0;
     transition: opacity 0.3s;
     max-width: 360px;

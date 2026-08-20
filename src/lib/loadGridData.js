@@ -528,12 +528,12 @@ export async function loadGridData(urls, onStatus) {
 
   onStatus(
     `${loaded} file(s) loaded: ${acc.lineCount.toLocaleString()} lines ` +
-      `(${totalSegs.toLocaleString()} segments), ` +
-      `${totalPoints.toLocaleString()} points` +
-      (acc.areaCount
-        ? ` and ${acc.areaCount.toLocaleString()} areas ` +
-          `(${areaTris.toLocaleString()} triangles)`
-        : '') +
+      // `(${totalSegs.toLocaleString()} segments), ` +
+      // `${totalPoints.toLocaleString()} points` +
+      // (acc.areaCount
+      //   ? ` and ${acc.areaCount.toLocaleString()} areas ` +
+      //     `(${areaTris.toLocaleString()} triangles)`
+      //   : '') +
       ' uploaded to GPU' +
       (failed ? ` (${failed} failed)` : ''),
     false

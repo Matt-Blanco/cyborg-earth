@@ -23,16 +23,16 @@
     left: 28px;
     z-index: 100;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: start;
     gap: 8px;
     pointer-events: auto;
   }
 
   .proj-select-wrap label {
     font-family: 'Inter', monospace;
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 1px;
-    text-transform: uppercase;
     color: var(--text-dim);
   }
 
@@ -40,7 +40,7 @@
     font-family: 'Inter', monospace;
     font-size: 11px;
     padding: 7px 12px;
-    border-radius: 6px;
+    border-radius: 2px;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);

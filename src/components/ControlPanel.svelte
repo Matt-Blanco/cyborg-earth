@@ -31,18 +31,6 @@
   aria-expanded={open}
   onclick={openPanel}
 >
-  <svg viewBox="0 0 16 16" aria-hidden="true">
-    <path
-      d="M1 4h9M13 4h2M1 8h2M6 8h9M1 12h9M13 12h2"
-      stroke="currentColor"
-      stroke-width="1.4"
-      stroke-linecap="round"
-      fill="none"
-    />
-    <circle cx="11.5" cy="4" r="1.8" fill="currentColor" />
-    <circle cx="4.5" cy="8" r="1.8" fill="currentColor" />
-    <circle cx="11.5" cy="12" r="1.8" fill="currentColor" />
-  </svg>
   Controls
 </button>
 
@@ -108,9 +96,8 @@
     font-family: 'Inter', monospace;
     font-size: 10px;
     letter-spacing: 1px;
-    text-transform: uppercase;
     padding: 8px 14px;
-    border-radius: 6px;
+    border-radius: 2px;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text-dim);
@@ -153,9 +140,9 @@
     padding: 20px 24px 24px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: var(--shadow-modal);
+    border-radius: 2px;
     color: var(--text);
+    margin: 2rem 2rem;
   }
 
   header {
@@ -178,7 +165,7 @@
     display: flex;
     padding: 5px;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 2px;
     background: none;
     color: var(--text-dim);
     cursor: pointer;
@@ -209,7 +196,7 @@
     padding: 3px;
     gap: 3px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 2px;
   }
 
   .segment {
@@ -218,7 +205,7 @@
     letter-spacing: 0.5px;
     padding: 6px 18px;
     border: none;
-    border-radius: 6px;
+    border-radius: 2px;
     background: none;
     color: var(--text-dim);
     cursor: pointer;
